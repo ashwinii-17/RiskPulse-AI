@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Environment
+.env
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ML
+*.pkl
+*.joblib
+
+# Allow RiskPulse production model
+!backend/ml/artifacts/riskpulse_xgboost_model.pkl
+
+# Logs
+*.log
+
+# Temporary
+tmp/
+temp/
