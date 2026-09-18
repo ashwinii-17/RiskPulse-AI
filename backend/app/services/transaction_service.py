@@ -1,8 +1,27 @@
+import math
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from backend.app.models.transaction import Transaction
 
+def make_json_safe(features: dict) -> dict:
+    """
+    Convert NaN and infinite numeric values to None so the
+    feature dictionary can be stored as valid PostgreSQL JSON.
+    """
+
+    safe_features = {}
+
+    for key, value in features.items():
+        if isinstance(value, float):
+            if math.isnan(value) or math.isinf(value):
+                safe_features[key] = None
+            else:
+                safe_features[key] = value
+        else:
+            safe_features[key] = value
+
+    return safe_features
 
 class TransactionService:
     """Handles persistence and retrieval of RiskPulse transactions."""
@@ -22,7 +41,7 @@ class TransactionService:
         transaction = Transaction(
             source_row_id=source_row_id,
             actual_is_fraud=actual_is_fraud,
-            model_features=model_features,
+            model_features=make_json_safe(model_features),
             transaction_id=transaction_id,
             transaction_amount=transaction_amount,
             fraud_probability=fraud_probability,

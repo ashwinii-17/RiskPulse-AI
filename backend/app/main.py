@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.routes.auth import router as auth_router
 from backend.app.api.routes.risk import router as risk_router
 from backend.app.core.config import settings
 
@@ -10,6 +11,7 @@ app = FastAPI(
     version=settings.app_version,
     description="AI-powered fraud risk analysis API.",
 )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,7 +24,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(risk_router)
+app.include_router(auth_router)
 
 
 @app.get("/health")

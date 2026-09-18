@@ -4,7 +4,6 @@ async function request(endpoint, options = {}) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("riskpulse_access_token")}`,
       ...options.headers,
     },
     ...options,
@@ -14,7 +13,7 @@ async function request(endpoint, options = {}) {
     const error = await response.json().catch(() => ({}));
 
     throw new Error(
-      error.detail || `Request failed with status ${response.status}`,
+      error.detail || `Request failed with status ${response.status}`
     );
   }
 
@@ -38,15 +37,4 @@ export async function predictRisk(transaction) {
     method: "POST",
     body: JSON.stringify(transaction),
   });
-}
-
-export async function analyzeNewTransaction(transaction) {
-  return request("/risk/new-transaction", {
-    method: "POST",
-    body: JSON.stringify(transaction),
-  });
-}
-
-export async function getModelSchema() {
-  return request("/risk/model-schema");
 }

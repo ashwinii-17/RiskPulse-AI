@@ -48,10 +48,31 @@ function RiskAnalysis() {
     [transactions, selectedId],
   );
 
+  const featureCount = selectedTransaction?.model_features
+    ? Object.keys(selectedTransaction.model_features).length
+    : 0;
+
+  const isNewTransaction = featureCount === 10;
+  const isHistoricalTransaction = featureCount === 432;
+
+  const modelName = isNewTransaction
+    ? "RiskPulse V2 XGBoost"
+    : "RiskPulse XGBoost";
+
+  const modelDescription = isNewTransaction
+    ? "Dedicated 10-feature new-transaction fraud model"
+    : "Original 432-feature fraud classification model";
+
+  const analysisSource = isNewTransaction
+    ? "New Transaction Analysis"
+    : isHistoricalTransaction
+      ? "IEEE-CIS Dataset"
+      : "Unknown Source";
+
   const riskClass = (level) => {
     if (!level) return "risk-low";
 
-    return `risk-${level.toLowerCase()}`;
+    return `risk-${String(level).toLowerCase()}`;
   };
 
   const getRiskInterpretation = (level, score) => {
@@ -114,12 +135,23 @@ function RiskAnalysis() {
       return;
     }
 
-    if (
-      !selectedTransaction.model_features ||
-      Object.keys(selectedTransaction.model_features).length !== 432
-    ) {
+    if (!selectedTransaction) {
       setSimulationError(
-        "The selected transaction does not contain the required 432 model features.",
+        "Select a transaction before running a simulation.",
+      );
+      return;
+    }
+
+    if (!selectedTransaction.model_features) {
+      setSimulationError(
+        "The selected transaction does not contain model features.",
+      );
+      return;
+    }
+
+    if (![10, 432].includes(featureCount)) {
+      setSimulationError(
+        `Unsupported model feature set: ${featureCount} features.`,
       );
       return;
     }
@@ -189,8 +221,6 @@ function RiskAnalysis() {
 
   return (
     <div className="risk-analysis-page">
-      {/* PAGE HEADER */}
-
       <div className="page-heading-row">
         <div>
           <div className="section-eyebrow">
@@ -212,8 +242,6 @@ function RiskAnalysis() {
       </div>
 
       <div className="analysis-grid">
-        {/* LEFT — ANALYZED TRANSACTIONS */}
-
         <section className="analysis-card transaction-selector">
           <div className="analysis-card-header">
             <div>
@@ -230,62 +258,75 @@ function RiskAnalysis() {
           </div>
 
           <div className="analysis-transaction-list">
-            {transactions.map((transaction) => (
-              <button
-                key={transaction.id}
-                type="button"
-                className={`analysis-transaction ${
-                  selectedId === transaction.id
-                    ? "selected"
-                    : ""
-                }`}
-                onClick={() =>
-                  handleTransactionSelect(transaction)
-                }
-              >
-                <div className="analysis-transaction-main">
-                  <strong>
-                    {transaction.transaction_id}
-                  </strong>
+            {transactions.map((transaction) => {
+              const transactionFeatureCount =
+                transaction.model_features
+                  ? Object.keys(
+                      transaction.model_features,
+                    ).length
+                  : 0;
 
-                  <span>
-                    ₹
-                    {Number(
-                      transaction.transaction_amount || 0,
-                    ).toFixed(2)}
-                  </span>
-                </div>
+              return (
+                <button
+                  key={transaction.id}
+                  type="button"
+                  className={`analysis-transaction ${
+                    selectedId === transaction.id
+                      ? "selected"
+                      : ""
+                  }`}
+                  onClick={() =>
+                    handleTransactionSelect(transaction)
+                  }
+                >
+                  <div className="analysis-transaction-main">
+                    <strong>
+                      {transaction.transaction_id}
+                    </strong>
 
-                <div className="analysis-transaction-meta">
-                  <span>
-                    {(
-                      Number(
-                        transaction.fraud_probability || 0,
-                      ) * 100
-                    ).toFixed(2)}
-                    % probability
-                  </span>
+                    <span>
+                      ₹
+                      {Number(
+                        transaction.transaction_amount || 0,
+                      ).toFixed(2)}
+                    </span>
+                  </div>
 
-                  <span
-                    className={riskClass(
-                      transaction.risk_level,
-                    )}
-                  >
-                    {transaction.risk_level}
-                  </span>
-                </div>
-              </button>
-            ))}
+                  <div className="analysis-transaction-meta">
+                    <span>
+                      {(
+                        Number(
+                          transaction.fraud_probability || 0,
+                        ) * 100
+                      ).toFixed(2)}
+                      % probability
+                    </span>
+
+                    <span
+                      className={riskClass(
+                        transaction.risk_level,
+                      )}
+                    >
+                      {transaction.risk_level}
+                    </span>
+                  </div>
+
+                  <div className="analysis-transaction-model">
+                    {transactionFeatureCount === 10
+                      ? "V2 • 10 features"
+                      : transactionFeatureCount === 432
+                        ? "XGBoost • 432 features"
+                        : `${transactionFeatureCount} features`}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
-
-        {/* RIGHT — INVESTIGATION */}
 
         <section className="analysis-card investigation-card">
           {selectedTransaction ? (
             <>
-              {/* TRANSACTION HEADER */}
-
               <div className="analysis-card-header">
                 <div>
                   <div className="section-eyebrow">
@@ -305,8 +346,6 @@ function RiskAnalysis() {
                   {selectedTransaction.risk_level}
                 </span>
               </div>
-
-              {/* ORIGINAL RISK SCORE */}
 
               <div className="risk-score-panel">
                 <div>
@@ -341,8 +380,6 @@ function RiskAnalysis() {
                 </div>
               </div>
 
-              {/* COUNTERFACTUAL ANALYSIS */}
-
               <div className="risk-simulator">
                 <div className="risk-simulator-header">
                   <div>
@@ -356,9 +393,8 @@ function RiskAnalysis() {
 
                     <p>
                       Change the transaction amount and observe
-                      how the trained model responds while all
-                      other transaction features remain
-                      unchanged.
+                      how the selected model responds while all
+                      other transaction features remain unchanged.
                     </p>
                   </div>
                 </div>
@@ -383,6 +419,7 @@ function RiskAnalysis() {
                             event.target.value,
                           );
                         }}
+                        disabled={simulationLoading}
                       />
                     </div>
                   </div>
@@ -405,8 +442,6 @@ function RiskAnalysis() {
                   </div>
                 )}
               </div>
-
-              {/* SIMULATION RESULT */}
 
               {simulationResult && (
                 <div className="simulation-result">
@@ -533,8 +568,6 @@ function RiskAnalysis() {
                     />
                   </div>
 
-                  {/* DYNAMIC RISK INTERPRETATION */}
-
                   <div
                     className={`simulation-interpretation ${riskClass(
                       simulationResult.risk_level,
@@ -561,20 +594,15 @@ function RiskAnalysis() {
                     })()}
                   </div>
 
-                  {/* COUNTERFACTUAL EXPLANATION */}
-
                   <div className="simulation-result-message">
-                    This is a counterfactual scenario: the XGBoost
-                    model evaluated the selected transaction
-                    profile after changing only the transaction
-                    amount. The displayed risk level represents
-                    the model's predicted fraud risk for this
-                    modified feature profile.
+                    This is a counterfactual scenario. The selected
+                    transaction profile was evaluated after changing
+                    only the transaction amount. The displayed result
+                    represents the model's predicted fraud risk for
+                    that modified profile.
                   </div>
                 </div>
               )}
-
-              {/* ORIGINAL TRANSACTION METRICS */}
 
               <div className="investigation-metrics">
                 <div className="investigation-metric">
@@ -614,21 +642,9 @@ function RiskAnalysis() {
                 <div className="investigation-metric">
                   <span>Analysis Source</span>
 
-                  <strong>
-                    {selectedTransaction.transaction_id.startsWith(
-                      "SIM-",
-                    )
-                      ? "Scenario Simulation"
-                      : selectedTransaction.transaction_id.startsWith(
-                            "LIVE-",
-                          )
-                        ? "Live Risk Analysis"
-                        : "IEEE-CIS Dataset"}
-                  </strong>
+                  <strong>{analysisSource}</strong>
                 </div>
               </div>
-
-              {/* AI ASSESSMENT */}
 
               <div className="assessment-box">
                 <div className="assessment-icon">
@@ -639,36 +655,57 @@ function RiskAnalysis() {
                   <h3>AI Risk Assessment</h3>
 
                   <p>
-                    The trained XGBoost fraud classification
-                    engine assigned this transaction a risk score
-                    of{" "}
+                    The{" "}
+                    <strong>{modelName}</strong>{" "}
+                    assigned this transaction a risk score of{" "}
                     <strong>
                       {Number(
                         selectedTransaction.risk_score || 0,
                       ).toFixed(2)}
                     </strong>{" "}
-                    based on the transaction's model features.
+                    based on its{" "}
+                    <strong>
+                      {featureCount}-feature
+                    </strong>{" "}
+                    model input.
                   </p>
                 </div>
               </div>
 
-              {/* MODEL INFORMATION */}
-
               <div className="model-information">
                 <div>
                   <span>MODEL</span>
-                  <strong>XGBoost</strong>
+
+                  <strong>
+                    {isNewTransaction
+                      ? "XGBoost V2"
+                      : "XGBoost"}
+                  </strong>
                 </div>
 
                 <div>
                   <span>FEATURES</span>
-                  <strong>432</strong>
+
+                  <strong>
+                    {featureCount || "N/A"}
+                  </strong>
                 </div>
 
                 <div>
                   <span>ENGINE</span>
-                  <strong>Production Inference</strong>
+
+                  <strong>
+                    {isNewTransaction
+                      ? "New Transaction Inference"
+                      : isHistoricalTransaction
+                        ? "Production Inference"
+                        : "Unknown"}
+                  </strong>
                 </div>
+              </div>
+
+              <div className="model-description">
+                {modelDescription}
               </div>
             </>
           ) : (

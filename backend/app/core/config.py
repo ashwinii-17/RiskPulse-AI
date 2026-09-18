@@ -18,7 +18,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     model_path: str = str(
-        PROJECT_ROOT / "backend" / "ml" / "artifacts"
+        PROJECT_ROOT
+        / "backend"
+        / "ml"
+        / "artifacts"
         / "riskpulse_xgboost_model.json"
     )
 
@@ -27,6 +30,11 @@ class Settings(BaseSettings):
     model_risk_threshold_low: float = 30.0
     model_risk_threshold_medium: float = 60.0
     model_risk_threshold_high: float = 80.0
+
+    # Authentication
+    secret_key: str = "CHANGE_THIS_SECRET_IN_ENV"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",
