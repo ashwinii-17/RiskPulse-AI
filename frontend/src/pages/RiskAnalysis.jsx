@@ -854,8 +854,8 @@ function RiskAnalysis() {
                 <div className="risk-detail-card">
 
                   <div className="risk-detail-icon amber">
-                    <Icon
-                      name="warning"
+                    <RiskLevelIcon
+                      level={selectedTransaction.risk_level}
                       size={17}
                     />
                   </div>

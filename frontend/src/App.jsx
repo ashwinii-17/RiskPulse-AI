@@ -14,6 +14,7 @@ import ModelActivity from "./pages/RiskMonitor";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import RiskLevelIcon from "./components/RiskLevelIcon";
+import NewTransaction from "./pages/NewTransaction";
 
 import {
   getRiskSummary,
@@ -75,6 +76,21 @@ function TransactionIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 7h16M4 12h16M4 17h10" />
       <circle cx="18" cy="17" r="2" />
+    </svg>
+  );
+}
+function NewTransactionIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect
+        x="4"
+        y="5"
+        width="16"
+        height="14"
+        rx="2"
+      />
+      <path d="M8 9h8M8 13h4" />
+      <path d="M17 15v5M14.5 17.5h5" />
     </svg>
   );
 }
@@ -550,6 +566,25 @@ function App() {
             <span>Transactions</span>
           </button>
 
+          {/* NEW TRANSACTION */}
+
+          <button
+      
+            className={
+              currentPage === "new-transaction"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              setCurrentPage("new-transaction")
+            }
+          >
+            <NewTransactionIcon />
+
+            <span>
+              New Transaction
+            </span>
+          </button>
 
           {/* RISK ANALYSIS */}
 
@@ -584,11 +619,26 @@ function App() {
               setCurrentPage("risk-statistics")
             }
           >
-            <ActivityIcon />
+            
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3v9h9" />
+              <path d="M21 12a9 9 0 1 1-9-9" />
+              <path d="M12 12l6.4 6.4" />
+            </svg>
 
             <span>
               Risk Statistics
             </span>
+
           </button>
 
 
@@ -617,7 +667,7 @@ function App() {
           <div className="nav-section-label second">
             SYSTEM
           </div>
-
+          
 
           {/* SETTINGS */}
 
@@ -804,6 +854,10 @@ function App() {
                 selectedTransactionId
               }
             />
+
+          ) : currentPage === 
+            "new-transaction" ? (
+            <NewTransaction />
 
           ) : currentPage ===
             "risk-analysis" ? (

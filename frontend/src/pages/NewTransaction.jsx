@@ -1,33 +1,6 @@
 import { useState } from "react";
 import { analyzeNewTransaction } from "../services/api";
 
-const REQUIRED_FEATURES = [
-  "TransactionAmt",
-  "TransactionDT",
-  "card1",
-  "card2",
-  "card3",
-  "card5",
-  "addr1",
-  "addr2",
-  "dist1",
-  "dist2",
-];
-
-const EXAMPLE_PAYLOAD = {
-  transaction_id: `TXN-${Date.now()}`,
-  transaction_amount: 68.5,
-  TransactionDT: 86400,
-  card1: 13926,
-  card2: 361,
-  card3: 150,
-  card5: 142,
-  addr1: 315,
-  addr2: 87,
-  dist1: 19,
-  dist2: 37,
-};
-
 function ResultIcon({ type }) {
   const paths = {
     probability: (
@@ -37,12 +10,14 @@ function ResultIcon({ type }) {
         <path d="M12 12 16.5 7" />
       </>
     ),
+
     amount: (
       <>
         <rect x="3" y="6" width="18" height="13" rx="2" />
         <path d="M3 10h18M7 15h4" />
       </>
     ),
+
     id: (
       <>
         <rect x="5" y="3" width="14" height="18" rx="2" />
@@ -68,88 +43,70 @@ function ResultIcon({ type }) {
 }
 
 function NewTransaction({ onNavigate }) {
-  const [payloadText, setPayloadText] = useState(
-    JSON.stringify(EXAMPLE_PAYLOAD, null, 2),
-  );
+  const [formData, setFormData] = useState({
+    transaction_amount: "",
+    TransactionDT: "",
+    card1: "",
+    card2: "",
+    card3: "",
+    card5: "",
+    addr1: "",
+    addr2: "",
+    dist1: "",
+    dist2: "",
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
-  function validatePayload(payload) {
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      throw new Error("Payload must be a JSON object.");
-    }
+  function handleChange(event) {
+    const { name, value } = event.target;
 
-    if (
-      payload.transaction_amount === undefined ||
-      payload.transaction_amount === null
-    ) {
-      throw new Error("Missing transaction_amount.");
-    }
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
 
-    const amount = Number(payload.transaction_amount);
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new Error(
-        "transaction_amount must be a number greater than zero.",
-      );
-    }
-
-    const missingFeatures = REQUIRED_FEATURES.filter(
-      (feature) =>
-        feature !== "TransactionAmt" &&
-        (payload[feature] === undefined || payload[feature] === null),
-    );
-
-    if (missingFeatures.length > 0) {
-      throw new Error(
-        `Missing required model features: ${missingFeatures.join(", ")}`,
-      );
-    }
-
-    const numericFields = [
-      "transaction_amount",
-      ...REQUIRED_FEATURES,
-    ];
-
-    for (const field of numericFields) {
-      if (field === "transaction_id") {
-        continue;
-      }
-
-      if (payload[field] === undefined || payload[field] === null) {
-        continue;
-      }
-
-      const numericValue = Number(payload[field]);
-
-      if (!Number.isFinite(numericValue)) {
-        throw new Error(`${field} must be numeric.`);
-      }
-    }
-
-    return payload;
+    setError("");
+    setResult(null);
   }
 
-  function normalizePayload(payload) {
-    return {
-      transaction_id:
-        typeof payload.transaction_id === "string"
-          ? payload.transaction_id.trim() || null
-          : null,
+  function validateForm() {
+    const requiredFields = [
+      ["transaction_amount", "Transaction amount"],
+      ["TransactionDT", "Transaction time"],
+      ["card1", "Card 1"],
+      ["card2", "Card 2"],
+      ["card3", "Card 3"],
+      ["card5", "Card 5"],
+      ["addr1", "Address 1"],
+      ["addr2", "Address 2"],
+      ["dist1", "Distance 1"],
+      ["dist2", "Distance 2"],
+    ];
 
-      transaction_amount: Number(payload.transaction_amount),
+    for (const [field, label] of requiredFields) {
+      if (
+        formData[field] === "" ||
+        formData[field] === null ||
+        formData[field] === undefined
+      ) {
+        throw new Error(`${label} is required.`);
+      }
 
-      TransactionDT: Number(payload.TransactionDT),
-      card1: Number(payload.card1),
-      card2: Number(payload.card2),
-      card3: Number(payload.card3),
-      card5: Number(payload.card5),
-      addr1: Number(payload.addr1),
-      addr2: Number(payload.addr2),
-      dist1: Number(payload.dist1),
-      dist2: Number(payload.dist2),
-    };
+      const value = Number(formData[field]);
+
+      if (!Number.isFinite(value)) {
+        throw new Error(`${label} must be a valid number.`);
+      }
+    }
+
+    if (Number(formData.transaction_amount) <= 0) {
+      throw new Error("Transaction amount must be greater than zero.");
+    }
+
+    return true;
   }
 
   async function handleSubmit(event) {
@@ -160,32 +117,43 @@ function NewTransaction({ onNavigate }) {
       setError("");
       setResult(null);
 
-      let parsed;
+      validateForm();
 
-      try {
-        parsed = JSON.parse(payloadText);
-      } catch {
-        throw new Error(
-          "Invalid JSON. Check commas, quotes, braces, and numeric values.",
-        );
-      }
+      const transaction = {
+        transaction_id: `NEW-${Date.now()}`,
 
-      validatePayload(parsed);
+        transaction_amount: Number(
+          formData.transaction_amount,
+        ),
 
-      const normalizedPayload = normalizePayload(parsed);
+        TransactionDT: Number(
+          formData.TransactionDT,
+        ),
 
-      const prediction = await analyzeNewTransaction(
-        normalizedPayload,
-      );
+        card1: Number(formData.card1),
+        card2: Number(formData.card2),
+        card3: Number(formData.card3),
+        card5: Number(formData.card5),
+
+        addr1: Number(formData.addr1),
+        addr2: Number(formData.addr2),
+
+        dist1: Number(formData.dist1),
+        dist2: Number(formData.dist2),
+      };
+
+      const prediction =
+        await analyzeNewTransaction(transaction);
 
       setResult({
         ...prediction,
         transaction_amount:
-          normalizedPayload.transaction_amount,
+          transaction.transaction_amount,
       });
     } catch (err) {
       setError(
-        err.message || "Unable to analyze the transaction.",
+        err.message ||
+          "Unable to analyze the transaction.",
       );
     } finally {
       setLoading(false);
@@ -193,15 +161,19 @@ function NewTransaction({ onNavigate }) {
   }
 
   function handleReset() {
-    setPayloadText("");
-    setResult(null);
-    setError("");
-  }
+    setFormData({
+      transaction_amount: "",
+      TransactionDT: "",
+      card1: "",
+      card2: "",
+      card3: "",
+      card5: "",
+      addr1: "",
+      addr2: "",
+      dist1: "",
+      dist2: "",
+    });
 
-  function loadExample() {
-    setPayloadText(
-      JSON.stringify(EXAMPLE_PAYLOAD, null, 2),
-    );
     setResult(null);
     setError("");
   }
@@ -212,7 +184,7 @@ function NewTransaction({ onNavigate }) {
 
   const riskMessage = {
     low:
-      "The model predicts a low fraud risk based on the learned patterns available to the V2 model.",
+      "The model predicts a low fraud risk based on the transaction features provided.",
 
     medium:
       "The model predicts a medium fraud risk. Review the transaction and supporting context.",
@@ -221,7 +193,7 @@ function NewTransaction({ onNavigate }) {
       "The model predicts a high fraud risk. Additional transaction review is recommended.",
 
     critical:
-      "The model predicts a critical fraud risk and should be escalated for immediate manual investigation.",
+      "The model predicts a critical fraud risk and should be escalated for manual investigation.",
   };
 
   return (
@@ -229,14 +201,14 @@ function NewTransaction({ onNavigate }) {
       <div className="page-heading-row">
         <div>
           <div className="section-eyebrow">
-            TRANSACTION INGESTION
+            TRANSACTION ASSESSMENT
           </div>
 
           <h1>New Transaction Risk Check</h1>
 
           <p>
-            Submit a preprocessed transaction payload to
-            the RiskPulse V2 fraud-scoring pipeline.
+            Enter the transaction details below to assess
+            its fraud risk using the RiskPulse V2 model.
           </p>
         </div>
 
@@ -247,6 +219,7 @@ function NewTransaction({ onNavigate }) {
       </div>
 
       <div className="new-transaction-grid">
+        {/* LEFT SIDE */}
         <section className="analysis-card transaction-input-card">
           <div className="analysis-card-header">
             <div className="header-icon-box">
@@ -254,12 +227,11 @@ function NewTransaction({ onNavigate }) {
             </div>
 
             <div>
-              <h2>Transaction Payload</h2>
+              <h2>Transaction Details</h2>
 
               <p>
-                RiskPulse expects the exact preprocessed
-                feature contract used by the dedicated
-                10-feature XGBoost model.
+                Enter the required transaction information
+                for fraud-risk assessment.
               </p>
             </div>
 
@@ -278,108 +250,268 @@ function NewTransaction({ onNavigate }) {
             className="new-transaction-form"
             onSubmit={handleSubmit}
           >
+            {/* TRANSACTION DETAILS */}
+
+            <div className="form-section">
+              <div className="form-section-title">
+                <ResultIcon type="amount" />
+                <span>Transaction Information</span>
+              </div>
+
+              <div className="transaction-form-grid">
+                <div className="transaction-field">
+                  <label htmlFor="transaction_amount">
+                    Transaction Amount
+                  </label>
+
+                  <div className="input-with-prefix">
+                    <span>₹</span>
+
+                    <input
+                      id="transaction_amount"
+                      name="transaction_amount"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="Enter amount"
+                      value={formData.transaction_amount}
+                      onChange={handleChange}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="transaction-field">
+                  <label htmlFor="TransactionDT">
+                    Transaction Time
+                  </label>
+
+                  <input
+                    id="TransactionDT"
+                    name="TransactionDT"
+                    type="number"
+                    min="0"
+                    placeholder="Enter transaction time"
+                    value={formData.TransactionDT}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
+
+                  <small>
+                    Dataset transaction-time value
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            {/* CARD DETAILS */}
+
             <div className="form-section">
               <div className="form-section-title">
                 <ResultIcon type="id" />
-                <span>Preprocessed Input</span>
+                <span>Card Information</span>
               </div>
 
-              <div className="payload-helper">
-                <div>
-                  <strong>
-                    Upstream ingestion contract
-                  </strong>
+              <div className="transaction-form-grid">
+                <div className="transaction-field">
+                  <label htmlFor="card1">Card 1</label>
 
-                  <p>
-                    The preprocessing and encoding stage
-                    happens before this API boundary. RiskPulse
-                    validates the contract and performs
-                    inference; it does not invent missing
-                    feature values.
-                  </p>
+                  <input
+                    id="card1"
+                    name="card1"
+                    type="number"
+                    min="0"
+                    placeholder="Enter card1"
+                    value={formData.card1}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
                 </div>
 
-                <button
-                  type="button"
-                  className="secondary-action-button small-action"
-                  onClick={loadExample}
-                  disabled={loading}
-                >
-                  LOAD EXAMPLE
-                </button>
+                <div className="transaction-field">
+                  <label htmlFor="card2">Card 2</label>
+
+                  <input
+                    id="card2"
+                    name="card2"
+                    type="number"
+                    min="0"
+                    placeholder="Enter card2"
+                    value={formData.card2}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                <div className="transaction-field">
+                  <label htmlFor="card3">Card 3</label>
+
+                  <input
+                    id="card3"
+                    name="card3"
+                    type="number"
+                    min="0"
+                    placeholder="Enter card3"
+                    value={formData.card3}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                <div className="transaction-field">
+                  <label htmlFor="card5">Card 5</label>
+
+                  <input
+                    id="card5"
+                    name="card5"
+                    type="number"
+                    min="0"
+                    placeholder="Enter card5"
+                    value={formData.card5}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ADDRESS DETAILS */}
+
+            <div className="form-section">
+              <div className="form-section-title">
+                <ResultIcon type="id" />
+                <span>Address Information</span>
               </div>
 
-              <div className="json-editor-wrapper">
-                <textarea
-                  className="json-editor"
-                  value={payloadText}
-                  onChange={(event) => {
-                    setPayloadText(event.target.value);
-                    setError("");
-                    setResult(null);
-                  }}
-                  disabled={loading}
-                  spellCheck="false"
-                  aria-label="Preprocessed transaction JSON payload"
-                />
+              <div className="transaction-form-grid">
+                <div className="transaction-field">
+                  <label htmlFor="addr1">
+                    Address 1
+                  </label>
+
+                  <input
+                    id="addr1"
+                    name="addr1"
+                    type="number"
+                    min="0"
+                    placeholder="Enter address 1"
+                    value={formData.addr1}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                <div className="transaction-field">
+                  <label htmlFor="addr2">
+                    Address 2
+                  </label>
+
+                  <input
+                    id="addr2"
+                    name="addr2"
+                    type="number"
+                    min="0"
+                    placeholder="Enter address 2"
+                    value={formData.addr2}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* DISTANCE DETAILS */}
+
+            <div className="form-section">
+              <div className="form-section-title">
+                <ResultIcon type="probability" />
+                <span>Transaction Distance</span>
               </div>
 
-              <div className="feature-contract">
-                <div className="contract-icon">
-                  ✓
+              <div className="transaction-form-grid">
+                <div className="transaction-field">
+                  <label htmlFor="dist1">
+                    Distance 1
+                  </label>
+
+                  <input
+                    id="dist1"
+                    name="dist1"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter distance 1"
+                    value={formData.dist1}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
                 </div>
 
-                <div className="contract-main">
-                  <span className="contract-label">
-                    MODEL CONTRACT
-                  </span>
+                <div className="transaction-field">
+                  <label htmlFor="dist2">
+                    Distance 2
+                  </label>
 
-                  <strong>10 features</strong>
+                  <input
+                    id="dist2"
+                    name="dist2"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter distance 2"
+                    value={formData.dist2}
+                    onChange={handleChange}
+                    disabled={loading}
+                    required
+                  />
                 </div>
+              </div>
+            </div>
 
-                <div className="contract-divider" />
+            {error && (
+              <div className="new-transaction-error">
+                {error}
+              </div>
+            )}
 
-                <span>
-                  TransactionAmt · TransactionDT · card1 ·
-                  card2 · card3 · card5 · addr1 · addr2 ·
-                  dist1 · dist2
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary-action-button"
+                onClick={handleReset}
+                disabled={loading}
+              >
+                ↻
+                <span>CLEAR</span>
+              </button>
+
+              <button
+                type="submit"
+                className="primary-action-button"
+                disabled={loading}
+              >
+                <span className="run-icon">
+                  ▶
                 </span>
-              </div>
 
-              {error && (
-                <div className="new-transaction-error">
-                  {error}
-                </div>
-              )}
-
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="secondary-action-button"
-                  onClick={handleReset}
-                  disabled={loading}
-                >
-                  ↻
-                  <span>CLEAR</span>
-                </button>
-
-                <button
-                  type="submit"
-                  className="primary-action-button"
-                  disabled={!payloadText.trim() || loading}
-                >
-                  <span className="run-icon">
-                    ▶
-                  </span>
-
-                  {loading
-                    ? "ANALYZING..."
-                    : "RUN RISK ANALYSIS"}
-                </button>
-              </div>
+                {loading
+                  ? "ANALYZING..."
+                  : "ASSESS TRANSACTION RISK"}
+              </button>
             </div>
           </form>
         </section>
+
+        {/* RIGHT SIDE */}
 
         <section className="analysis-card prediction-result-card">
           <div className="analysis-card-header">
@@ -406,8 +538,9 @@ function NewTransaction({ onNavigate }) {
               <h3>No analysis yet</h3>
 
               <p>
-                Submit a valid preprocessed transaction
-                payload to generate a risk assessment.
+                Enter the transaction details and click
+                "Assess Transaction Risk" to generate the
+                fraud-risk assessment.
               </p>
             </div>
           ) : (
