@@ -1,18 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import "./App.css";
 
 import Transactions from "./pages/Transactions";
 import RiskAnalysis from "./pages/RiskAnalysis";
-import ModelActivity from "./pages/ModelActivity";
-import NewTransaction from "./pages/NewTransaction";
+import RiskAnalytics from "./pages/RiskStatistics";
+import ModelActivity from "./pages/RiskMonitor";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import RiskLevelIcon from "./components/RiskLevelIcon";
 
 import {
   getRiskSummary,
   getTransactions,
 } from "./services/api";
 
+
+/* =========================================================
+   LOGO
+   ========================================================= */
 
 function ShieldLogo() {
   return (
@@ -42,6 +53,10 @@ function ShieldLogo() {
   );
 }
 
+
+/* =========================================================
+   NAVIGATION ICONS
+   ========================================================= */
 
 function DashboardIcon() {
   return (
@@ -75,6 +90,30 @@ function ShieldIcon() {
 }
 
 
+function RiskAnalysisIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3l7 3v5c0 4.8-3 8.4-7 10-4-1.6-7-5.2-7-10V6l7-3z"
+      />
+
+      <circle
+        cx="11"
+        cy="11"
+        r="3.5"
+      />
+
+      <path
+        d="m14 14 3 3"
+      />
+    </svg>
+  );
+}
+
+
 function ActivityIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -89,7 +128,7 @@ function SettingsIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="3" />
 
-      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V20h-2.6v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1A1.7 1.7 0 0 0 8 15a1.7 1.7 0 0 0-1.5-1H6v-2.6h.5A1.7 1.7 0 0 0 8 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V5H15v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1V14h-.1a1.7 1.7 0 0 0-1.5 1z" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V20h-2.6v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1A1.7 1.7 0 0 0 8 15a1.7 1.7 0 0 0-1.5-1H6v-2.6h.5A1.7 1.7 0 0 0 8 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V5H15v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 .3 1.9 1.7 1.7 0 0 0 1.5 1h.1V14h-.1a1.7 1.7 0 0 0-1.5 1z" />
     </svg>
   );
 }
@@ -124,102 +163,246 @@ function ArrowUpIcon() {
 }
 
 
+/* =========================================================
+   RISK BADGE
+   ========================================================= */
+
 function RiskBadge({ level }) {
+  const normalizedLevel = String(level || "LOW").toLowerCase();
+
   return (
-    <span className={`risk-badge risk-${level.toLowerCase()}`}>
-      <span className="risk-dot" />
-      {level}
+    <span
+      className={`risk-badge risk-${normalizedLevel}`}
+    >
+      <RiskLevelIcon
+        level={level}
+        size={13}
+      />
+
+      <span>
+        {String(level || "LOW").toUpperCase()}
+      </span>
     </span>
   );
 }
 
+/* =========================================================
+   MAIN APP
+   ========================================================= */
 
 function App() {
   const [summary, setSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentPage, setCurrentPage] = useState("overview");
+
+  const [currentPage, setCurrentPage] =
+    useState("overview");
+
+  const [transactionFilter, setTransactionFilter] =
+    useState("ALL");
+
+  const [selectedTransactionId, setSelectedTransactionId] =
+    useState(null);
+
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return Boolean(
-      localStorage.getItem("riskpulse_access_token")
+      localStorage.getItem(
+        "riskpulse_access_token"
+      )
     );
   });
+
+
+  /* =======================================================
+     LOGOUT
+     ======================================================= */
+
   const handleLogout = () => {
-    localStorage.removeItem("riskpulse_access_token");
-    localStorage.removeItem("riskpulse_user");
+    localStorage.removeItem(
+      "riskpulse_access_token"
+    );
+
+    localStorage.removeItem(
+      "riskpulse_user"
+    );
 
     setIsLoggedIn(false);
   };
 
-  /*
-   * Dashboard data loading.
-   * This hook always runs, regardless of login state.
-   */
+
+  /* =======================================================
+     OPEN TRANSACTIONS
+     ======================================================= */
+
+  const openTransactions = (
+    filter = "ALL",
+    transactionId = null
+  ) => {
+    setTransactionFilter(
+      String(filter || "ALL").toUpperCase()
+    );
+
+    setSelectedTransactionId(
+      transactionId
+    );
+
+    setCurrentPage("transactions");
+  };
+
+
+  /* =======================================================
+     OPEN MODEL ACTIVITY
+     ======================================================= */
+
+  const openModelActivity = () => {
+    setCurrentPage(
+      "risk-monitor"
+    );
+  };
+
+
+  /* =======================================================
+     AUTH EXPIRATION
+     ======================================================= */
+
   useEffect(() => {
-    async function loadDashboard() {
+    function handleAuthExpired() {
+      setIsLoggedIn(false);
+    }
+
+    window.addEventListener(
+      "riskpulse-auth-expired",
+      handleAuthExpired
+    );
+
+    return () => {
+      window.removeEventListener(
+        "riskpulse-auth-expired",
+        handleAuthExpired
+      );
+    };
+  }, []);
+
+
+  /* =======================================================
+     DASHBOARD DATA
+     ======================================================= */
+
+  const loadDashboard = useCallback(
+    async (showLoading = false) => {
       try {
-        const [summaryData, transactionData] = await Promise.all([
+        if (showLoading) {
+          setLoading(true);
+        }
+
+        setError("");
+
+        const [
+          summaryData,
+          transactionData,
+        ] = await Promise.all([
           getRiskSummary(),
           getTransactions(),
         ]);
 
         setSummary(summaryData);
-        setTransactions(transactionData);
+
+        setTransactions(
+          Array.isArray(transactionData)
+            ? transactionData
+            : transactionData?.transactions || []
+        );
       } catch (err) {
-        setError(err.message);
+        setError(
+          err.message ||
+            "Unable to load dashboard data."
+        );
       } finally {
         setLoading(false);
       }
-    }
+    },
+    []
+  );
 
-    loadDashboard();
-  }, []);
+
+  /* =======================================================
+     INITIAL LOAD + AUTO REFRESH
+     ======================================================= */
+
+  useEffect(() => {
+    loadDashboard(true);
+
+    const refreshInterval =
+      setInterval(() => {
+        loadDashboard(false);
+      }, 30000);
+
+    return () => {
+      clearInterval(
+        refreshInterval
+      );
+    };
+  }, [loadDashboard]);
 
 
-  /*
-   * This hook MUST remain above every conditional return.
-   */
+  /* =======================================================
+     RISK DISTRIBUTION
+     ======================================================= */
+
   const riskDistribution = useMemo(() => {
     if (!summary) {
       return [];
     }
 
-    const total = summary.total_transactions || 1;
+    const total =
+      summary.total_transactions || 1;
 
     return [
       {
         label: "Critical",
-        count: summary.critical_count,
+        count:
+          summary.critical_count ?? 0,
         percentage: Math.round(
-          (summary.critical_count / total) * 100
+          ((summary.critical_count ?? 0) /
+            total) *
+            100
         ),
         className: "critical",
       },
 
       {
         label: "High",
-        count: summary.high_count,
+        count:
+          summary.high_count ?? 0,
         percentage: Math.round(
-          (summary.high_count / total) * 100
+          ((summary.high_count ?? 0) /
+            total) *
+            100
         ),
         className: "high",
       },
 
       {
         label: "Medium",
-        count: summary.medium_count,
+        count:
+          summary.medium_count ?? 0,
         percentage: Math.round(
-          (summary.medium_count / total) * 100
+          ((summary.medium_count ?? 0) /
+            total) *
+            100
         ),
         className: "medium",
       },
 
       {
         label: "Low",
-        count: summary.low_count,
+        count:
+          summary.low_count ?? 0,
         percentage: Math.round(
-          (summary.low_count / total) * 100
+          ((summary.low_count ?? 0) /
+            total) *
+            100
         ),
         className: "low",
       },
@@ -227,22 +410,24 @@ function App() {
   }, [summary]);
 
 
-  /*
-   * Login screen.
-   *
-   * IMPORTANT:
-   * This comes AFTER all hooks.
-   * Therefore React sees the same hook order
-   * before and after login.
-   */
+  /* =======================================================
+     LOGIN
+     ======================================================= */
+
   if (!isLoggedIn) {
     return (
       <Login
-        onLogin={() => setIsLoggedIn(true)}
+        onLogin={() =>
+          setIsLoggedIn(true)
+        }
       />
     );
   }
 
+
+  /* =======================================================
+     LOADING
+     ======================================================= */
 
   if (loading) {
     return (
@@ -261,6 +446,10 @@ function App() {
   }
 
 
+  /* =======================================================
+     ERROR
+     ======================================================= */
+
   if (error) {
     return (
       <div className="error-screen">
@@ -276,7 +465,9 @@ function App() {
         </p>
 
         <button
-          onClick={() => window.location.reload()}
+          onClick={() =>
+            window.location.reload()
+          }
         >
           Retry connection
         </button>
@@ -286,8 +477,13 @@ function App() {
   }
 
 
+  /* =======================================================
+     APPLICATION SHELL
+     ======================================================= */
+
   return (
     <div className="app-shell">
+
 
       {/* =====================================================
           SIDEBAR
@@ -321,7 +517,7 @@ function App() {
           </div>
 
 
-          {/* Overview */}
+          {/* OVERVIEW */}
 
           <button
             className={
@@ -329,14 +525,16 @@ function App() {
                 ? "nav-item active"
                 : "nav-item"
             }
-            onClick={() => setCurrentPage("overview")}
+            onClick={() =>
+              setCurrentPage("overview")
+            }
           >
             <DashboardIcon />
             <span>Overview</span>
           </button>
 
 
-          {/* Transactions */}
+          {/* TRANSACTIONS */}
 
           <button
             className={
@@ -344,14 +542,16 @@ function App() {
                 ? "nav-item active"
                 : "nav-item"
             }
-            onClick={() => setCurrentPage("transactions")}
+            onClick={() =>
+              openTransactions("ALL")
+            }
           >
             <TransactionIcon />
             <span>Transactions</span>
           </button>
 
 
-          {/* Risk Analysis */}
+          {/* RISK ANALYSIS */}
 
           <button
             className={
@@ -359,54 +559,57 @@ function App() {
                 ? "nav-item active"
                 : "nav-item"
             }
-            onClick={() => setCurrentPage("risk-analysis")}
+            onClick={() =>
+              setCurrentPage(
+                "risk-analysis"
+              )
+            }
           >
-            <span className="nav-icon">
-              {/* Risk Analysis icon */}
-            </span>
+            <RiskAnalysisIcon />
 
             <span>
               Risk Analysis
             </span>
           </button>
 
-
-          {/* Model Activity */}
+          {/* RISK ANALYTICS */}
 
           <button
             className={
-              currentPage === "model-activity"
+              currentPage === "risk-statistics"
                 ? "nav-item active"
                 : "nav-item"
             }
             onClick={() =>
-              setCurrentPage("model-activity")
+              setCurrentPage("risk-statistics")
             }
           >
             <ActivityIcon />
 
             <span>
-              Model Activity
+              Risk Statistics
             </span>
           </button>
 
 
-          {/* New Transaction */}
+          {/* RISK MONITOR */}
 
           <button
             className={
-              currentPage === "new-transaction"
+              currentPage === "risk-monitor"
                 ? "nav-item active"
                 : "nav-item"
             }
             onClick={() =>
-              setCurrentPage("new-transaction")
+              setCurrentPage(
+                "risk-monitor"
+              )
             }
           >
-            <TransactionIcon />
+            <ActivityIcon />
 
             <span>
-              New Transaction
+              Risk Monitor
             </span>
           </button>
 
@@ -416,7 +619,7 @@ function App() {
           </div>
 
 
-          {/* Settings */}
+          {/* SETTINGS */}
 
           <button
             className={
@@ -425,7 +628,9 @@ function App() {
                 : "nav-item"
             }
             onClick={() =>
-              setCurrentPage("settings")
+              setCurrentPage(
+                "settings"
+              )
             }
           >
             <SettingsIcon />
@@ -437,6 +642,8 @@ function App() {
 
         </nav>
 
+
+        {/* SIDEBAR BOTTOM */}
 
         <div className="sidebar-bottom">
 
@@ -477,7 +684,9 @@ function App() {
       <main className="main-content">
 
 
-        {/* Topbar */}
+        {/* ===================================================
+            TOPBAR
+            =================================================== */}
 
         <header className="topbar">
 
@@ -493,17 +702,23 @@ function App() {
 
             <b>
 
-              {currentPage === "overview"
+              {currentPage ===
+              "overview"
                 ? "Overview"
-                : currentPage === "transactions"
+                : currentPage ===
+                  "transactions"
                   ? "Transactions"
-                  : currentPage === "risk-analysis"
+                  : currentPage ===
+                    "risk-analysis"
                     ? "Risk Analysis"
-                    : currentPage === "model-activity"
-                      ? "Model Activity"
-                      : currentPage === "new-transaction"
-                        ? "New Transaction"
-                        : currentPage === "settings"
+                    : currentPage ===
+                      "risk-statistics"
+                      ? "Risk Statistics"
+                      : currentPage ===
+                        "risk-monitor"
+                        ? "Risk Monitor"
+                        : currentPage ===
+                          "settings"
                           ? "Settings"
                           : "Overview"}
 
@@ -527,26 +742,39 @@ function App() {
               aria-label="Notifications"
             >
               <BellIcon />
-
               <span />
             </button>
 
 
             <div className="user-profile">
-              <div className="avatar">A</div>
+
+              <div className="avatar">
+                A
+              </div>
 
               <div className="user-info">
-                <strong>Ashwini</strong>
-                <span>Transaction Risk Analyst</span>
+
+                <strong>
+                  Ashwini
+                </strong>
+
+                <span>
+                  Transaction Risk Analyst
+                </span>
+
               </div>
+
 
               <button
                 type="button"
                 className="logout-button"
-                onClick={handleLogout}
+                onClick={
+                  handleLogout
+                }
               >
                 Logout
               </button>
+
             </div>
 
           </div>
@@ -554,30 +782,46 @@ function App() {
         </header>
 
 
-        {/* Page content */}
+        {/* ===================================================
+            PAGE CONTENT
+            =================================================== */}
 
         <div className="content">
 
 
-          {currentPage === "transactions" ? (
+          {/* =================================================
+              TRANSACTIONS
+              ================================================= */}
 
-            <Transactions />
+          {currentPage ===
+          "transactions" ? (
 
-          ) : currentPage === "risk-analysis" ? (
+            <Transactions
+              initialFilter={
+                transactionFilter
+              }
+              initialTransactionId={
+                selectedTransactionId
+              }
+            />
+
+          ) : currentPage ===
+            "risk-analysis" ? (
 
             <RiskAnalysis />
 
-          ) : currentPage === "model-activity" ? (
+          ) : currentPage ===
+            "risk-statistics" ? (
+
+            <RiskAnalytics />
+
+          ) : currentPage ===
+            "risk-monitor" ? (
 
             <ModelActivity />
 
-          ) : currentPage === "new-transaction" ? (
-
-            <NewTransaction
-              onNavigate={setCurrentPage}
-            />
-
-          ) : currentPage === "settings" ? (
+          ) : currentPage ===
+            "settings" ? (
 
             <Settings />
 
@@ -587,7 +831,6 @@ function App() {
               {/* =================================================
                   OVERVIEW
                   ================================================= */}
-
 
               <section className="page-heading">
 
@@ -615,23 +858,88 @@ function App() {
                 </div>
 
 
-                <div className="system-status">
+                <div className="overview-actions">
 
-                  <span className="status-pulse" />
+                  <button
+                    type="button"
+                    className="dashboard-refresh-button"
+                    onClick={() =>
+                      loadDashboard(true)
+                    }
+                    disabled={loading}
+                  >
 
-                  Systems operational
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+
+                      <path
+                        d="M20 11a8 8 0 0 0-14.9-4M4 5v4h4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                      <path
+                        d="M4 13a8 8 0 0 0 14.9 4M20 19v-4h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+
+                    </svg>
+
+                    {loading
+                      ? "Refreshing..."
+                      : "Refresh"}
+
+                  </button>
+
+
+                  <div className="system-status">
+
+                    <span className="status-pulse" />
+
+                    Systems operational
+
+                  </div>
 
                 </div>
 
               </section>
 
 
-              {/* KPI GRID */}
+              {/* =================================================
+                  KPI GRID
+                  ================================================= */}
 
               <section className="kpi-grid">
 
 
-                <article className="kpi-card primary">
+                {/* TOTAL TRANSACTIONS */}
+
+                <article
+                  className="kpi-card primary dashboard-clickable"
+                  onClick={() =>
+                    openTransactions("ALL")
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      openTransactions("ALL");
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
 
                   <div className="kpi-top">
 
@@ -657,20 +965,55 @@ function App() {
 
                       <ArrowUpIcon />
 
-                      Live
+                      +12%
 
                     </span>
 
                     <span>
-                      Analyzed transactions
+                      vs last hour
                     </span>
+
+                  </div>
+
+
+                  <div className="kpi-sparkline spark-blue">
+
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
 
                   </div>
 
                 </article>
 
 
-                <article className="kpi-card critical-card">
+                {/* CRITICAL RISK */}
+
+                <article
+                  className="kpi-card critical-card dashboard-clickable"
+                  onClick={() =>
+                    openTransactions(
+                      "CRITICAL"
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      openTransactions(
+                        "CRITICAL"
+                      );
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
 
                   <div className="kpi-top">
 
@@ -679,7 +1022,10 @@ function App() {
                     </span>
 
                     <div className="kpi-icon">
-                      <ShieldIcon />
+                      <RiskLevelIcon
+                        level="CRITICAL"
+                        size={17}
+                      />
                     </div>
 
                   </div>
@@ -693,15 +1039,58 @@ function App() {
                   <div className="kpi-footer">
 
                     <span className="metric-label critical-text">
-                      Immediate attention
+
+                      {summary?.total_transactions
+                        ? `${Math.round(
+                            ((summary?.critical_count ?? 0) /
+                              summary.total_transactions) *
+                              100
+                          )}% of total`
+                        : "0% of total"}
+
                     </span>
+
+                  </div>
+
+
+                  <div className="kpi-sparkline spark-red">
+
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
 
                   </div>
 
                 </article>
 
 
-                <article className="kpi-card high-card">
+                {/* HIGH RISK */}
+
+                <article
+                  className="kpi-card high-card dashboard-clickable"
+                  onClick={() =>
+                    openTransactions(
+                      "HIGH"
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      openTransactions(
+                        "HIGH"
+                      );
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
 
                   <div className="kpi-top">
 
@@ -710,7 +1099,10 @@ function App() {
                     </span>
 
                     <div className="kpi-icon">
-                      <ActivityIcon />
+                      <RiskLevelIcon
+                        level="HIGH"
+                        size={17}
+                      />
                     </div>
 
                   </div>
@@ -724,15 +1116,58 @@ function App() {
                   <div className="kpi-footer">
 
                     <span className="metric-label high-text">
-                      Review required
+
+                      {summary?.total_transactions
+                        ? `${(
+                            ((summary?.high_count ?? 0) /
+                              summary.total_transactions) *
+                            100
+                          ).toFixed(1)}% of total`
+                        : "0% of total"}
+
                     </span>
+
+                  </div>
+
+
+                  <div className="kpi-sparkline spark-orange">
+
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
 
                   </div>
 
                 </article>
 
 
-                <article className="kpi-card medium-card">
+                {/* MEDIUM RISK */}
+
+                <article
+                  className="kpi-card medium-card dashboard-clickable"
+                  onClick={() =>
+                    openTransactions(
+                      "MEDIUM"
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      openTransactions(
+                        "MEDIUM"
+                      );
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
 
                   <div className="kpi-top">
 
@@ -741,7 +1176,10 @@ function App() {
                     </span>
 
                     <div className="kpi-icon">
-                      <ActivityIcon />
+                      <RiskLevelIcon
+                        level="MEDIUM"
+                        size={17}
+                      />
                     </div>
 
                   </div>
@@ -755,15 +1193,58 @@ function App() {
                   <div className="kpi-footer">
 
                     <span className="metric-label medium-text">
-                      Monitor activity
+
+                      {summary?.total_transactions
+                        ? `${(
+                            ((summary?.medium_count ?? 0) /
+                              summary.total_transactions) *
+                            100
+                          ).toFixed(1)}% of total`
+                        : "0% of total"}
+
                     </span>
+
+                  </div>
+
+
+                  <div className="kpi-sparkline spark-yellow">
+
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
 
                   </div>
 
                 </article>
 
 
-                <article className="kpi-card low-card">
+                {/* LOW RISK */}
+
+                <article
+                  className="kpi-card low-card dashboard-clickable"
+                  onClick={() =>
+                    openTransactions(
+                      "LOW"
+                    )
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      openTransactions(
+                        "LOW"
+                      );
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
 
                   <div className="kpi-top">
 
@@ -772,7 +1253,10 @@ function App() {
                     </span>
 
                     <div className="kpi-icon">
-                      <ShieldIcon />
+                      <RiskLevelIcon
+                        level="LOW"
+                        size={17}
+                      />
                     </div>
 
                   </div>
@@ -786,8 +1270,29 @@ function App() {
                   <div className="kpi-footer">
 
                     <span className="metric-label low-text">
-                      Normal activity
+
+                      {summary?.total_transactions
+                        ? `${(
+                            ((summary?.low_count ?? 0) /
+                              summary.total_transactions) *
+                            100
+                          ).toFixed(1)}% of total`
+                        : "0% of total"}
+
                     </span>
+
+                  </div>
+
+
+                  <div className="kpi-sparkline spark-green">
+
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
 
                   </div>
 
@@ -796,10 +1301,14 @@ function App() {
               </section>
 
 
-              {/* ANALYTICS */}
+              {/* =================================================
+                  ANALYTICS
+                  ================================================= */}
 
               <section className="analytics-grid">
 
+
+                {/* RISK DISTRIBUTION */}
 
                 <article className="panel distribution-panel">
 
@@ -833,52 +1342,75 @@ function App() {
 
                     <div className="distribution-bars">
 
-                      {riskDistribution.map((item) => (
+                      {riskDistribution.map(
+                        (item) => (
 
-                        <div
-                          className="distribution-row"
-                          key={item.label}
-                        >
+                          <div
+                            className="distribution-row dashboard-distribution-clickable"
+                            key={item.label}
+                            onClick={() =>
+                              openTransactions(
+                                item.label.toUpperCase()
+                              )
+                            }
+                            onKeyDown={(event) => {
+                              if (
+                                event.key === "Enter" ||
+                                event.key === " "
+                              ) {
+                                event.preventDefault();
 
-                          <div className="distribution-label">
+                                openTransactions(
+                                  item.label.toUpperCase()
+                                );
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
 
-                            <span
-                              className={`legend-dot ${item.className}`}
-                            />
+                            <div className="distribution-label">
 
-                            <span>
-                              {item.label}
+                              <span
+                                className={`legend-dot ${item.className}`}
+                              />
+
+                              <span>
+                                {item.label}
+                              </span>
+
+                              <strong>
+                                {item.count}
+                              </strong>
+
+                            </div>
+
+
+                            <div className="bar-track">
+
+                              <div
+                                className={`bar-fill ${item.className}`}
+                                style={{
+                                  width: `${Math.max(
+                                    item.percentage,
+                                    item.count
+                                      ? 8
+                                      : 0
+                                  )}%`,
+                                }}
+                              />
+
+                            </div>
+
+
+                            <span className="percentage">
+                              {item.percentage}%
                             </span>
 
-                            <strong>
-                              {item.count}
-                            </strong>
-
                           </div>
 
-
-                          <div className="bar-track">
-
-                            <div
-                              className={`bar-fill ${item.className}`}
-                              style={{
-                                width: `${Math.max(
-                                  item.percentage,
-                                  item.count ? 8 : 0
-                                )}%`,
-                              }}
-                            />
-
-                          </div>
-
-
-                          <span className="percentage">
-                            {item.percentage}%
-                          </span>
-
-                        </div>
-
-                      ))}
+                        )
+                      )}
 
                     </div>
 
@@ -889,7 +1421,23 @@ function App() {
 
                 {/* MODEL STATUS */}
 
-                <article className="panel model-panel">
+                <article
+                  className="panel model-panel dashboard-clickable"
+                  onClick={
+                    openModelActivity
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      openModelActivity();
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
 
                   <div className="panel-heading">
 
@@ -986,7 +1534,9 @@ function App() {
               </section>
 
 
-              {/* RECENT TRANSACTIONS */}
+              {/* =================================================
+                  RECENT TRANSACTIONS
+                  ================================================= */}
 
               <section className="panel transactions-panel">
 
@@ -1005,7 +1555,13 @@ function App() {
                   </div>
 
 
-                  <button className="view-all">
+                  <button
+                    type="button"
+                    className="view-all"
+                    onClick={() =>
+                      openTransactions("ALL")
+                    }
+                  >
 
                     View all
 
@@ -1057,138 +1613,183 @@ function App() {
 
                     <tbody>
 
-                      {transactions.map((transaction) => (
+                      {transactions.map(
+                        (transaction) => (
 
-                        <tr key={transaction.id}>
+                          <tr
+                            key={
+                              transaction.id
+                            }
+                            className="dashboard-transaction-row"
+                            onClick={() =>
+                              openTransactions(
+                                transaction.risk_level,
+                                transaction.id
+                              )
+                            }
+                            onKeyDown={(
+                              event
+                            ) => {
+                              if (
+                                event.key ===
+                                  "Enter" ||
+                                event.key ===
+                                  " "
+                              ) {
+                                event.preventDefault();
+
+                                openTransactions(
+                                  transaction.risk_level,
+                                  transaction.id
+                                );
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
+
+                            <td>
+
+                              <div className="transaction-cell">
+
+                                <div className="transaction-symbol">
+                                  <TransactionIcon />
+                                </div>
 
 
-                          <td>
+                                <div>
 
-                            <div className="transaction-cell">
+                                  <strong>
+                                    {
+                                      transaction.transaction_id
+                                    }
+                                  </strong>
 
-                              <div className="transaction-symbol">
-                                <TransactionIcon />
+                                  <span>
+                                    ID #
+                                    {
+                                      transaction.id
+                                    }
+                                  </span>
+
+                                </div>
+
                               </div>
 
-
-                              <div>
-
-                                <strong>
-                                  {transaction.transaction_id}
-                                </strong>
-
-                                <span>
-                                  ID #{transaction.id}
-                                </span>
-
-                              </div>
-
-                            </div>
-
-                          </td>
+                            </td>
 
 
-                          <td>
+                            <td>
 
-                            <strong className="amount">
+                              <strong className="amount">
 
-                              {Number(
-                                transaction.transaction_amount
-                              ).toFixed(2)}
-
-                            </strong>
-
-                          </td>
-
-
-                          <td>
-
-                            <div className="probability-cell">
-
-                              <span>
-
-                                {(
-                                  Number(
-                                    transaction.fraud_probability
-                                  ) * 100
+                                ₹
+                                {Number(
+                                  transaction.transaction_amount
                                 ).toFixed(2)}
 
-                                %
+                              </strong>
+
+                            </td>
+
+
+                            <td>
+
+                              <div className="probability-cell">
+
+                                <span>
+
+                                  {(
+                                    Number(
+                                      transaction.fraud_probability
+                                    ) * 100
+                                  ).toFixed(2)}
+
+                                  %
+
+                                </span>
+
+
+                                <div className="mini-track">
+
+                                  <div
+                                    className="mini-fill"
+                                    style={{
+                                      width: `${
+                                        Number(
+                                          transaction.fraud_probability
+                                        ) * 100
+                                      }%`,
+                                    }}
+                                  />
+
+                                </div>
+
+                              </div>
+
+                            </td>
+
+
+                            <td>
+
+                              <strong className="score">
+
+                                {Number(
+                                  transaction.risk_score
+                                ).toFixed(2)}
+
+                              </strong>
+
+                            </td>
+
+
+                            <td>
+
+                              <RiskBadge
+                                level={
+                                  transaction.risk_level
+                                }
+                              />
+
+                            </td>
+
+
+                            <td>
+
+                              <span className="timestamp">
+
+                                {new Date(
+                                  transaction.created_at
+                                ).toLocaleTimeString(
+                                  [],
+                                  {
+                                    hour: "2-digit",
+                                    minute:
+                                      "2-digit",
+                                  }
+                                )}
 
                               </span>
 
+                            </td>
 
-                              <div className="mini-track">
+                          </tr>
 
-                                <div
-                                  className="mini-fill"
-                                  style={{
-                                    width: `${
-                                      Number(
-                                        transaction.fraud_probability
-                                      ) * 100
-                                    }%`,
-                                  }}
-                                />
-
-                              </div>
-
-                            </div>
-
-                          </td>
-
-
-                          <td>
-
-                            <strong className="score">
-
-                              {Number(
-                                transaction.risk_score
-                              ).toFixed(2)}
-
-                            </strong>
-
-                          </td>
-
-
-                          <td>
-
-                            <RiskBadge
-                              level={transaction.risk_level}
-                            />
-
-                          </td>
-
-
-                          <td>
-
-                            <span className="timestamp">
-
-                              {new Date(
-                                transaction.created_at
-                              ).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-
-                            </span>
-
-                          </td>
-
-                        </tr>
-
-                      ))}
+                        )
+                      )}
 
                     </tbody>
 
                   </table>
 
 
-                  {transactions.length === 0 && (
+                  {transactions.length ===
+                    0 && (
 
                     <div className="empty-state">
 
-                      No transactions have been analyzed yet.
+                      No transactions have been
+                      analyzed yet.
 
                     </div>
 
@@ -1198,6 +1799,10 @@ function App() {
 
               </section>
 
+
+              {/* =================================================
+                  FOOTER
+                  ================================================= */}
 
               <footer className="dashboard-footer">
 

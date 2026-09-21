@@ -28,8 +28,13 @@ export async function getRiskSummary() {
   return request("/risk/summary");
 }
 
-export async function getTransactions() {
-  return request("/risk/transactions");
+export async function searchTransactions(
+  query,
+  limit = 50
+) {
+  return request(
+    `/risk/transactions/search?query=${encodeURIComponent(query)}&limit=${limit}`
+  );
 }
 
 export async function predictRisk(transaction) {

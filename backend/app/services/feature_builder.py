@@ -9,26 +9,21 @@ from backend.ml.model.model_loader import model_loader
 
 class FeatureBuilder:
     """
-    Builds a model-compatible transaction feature vector.
+    Builds a model-compatible 432-feature vector from a complete,
+    already-preprocessed transaction payload.
 
-    The model expects exactly 432 features in a fixed order.
-    Analyst-provided values are inserted into their corresponding
-    model features. Features not supplied by the analyst remain NaN
-    and are handled by XGBoost's native missing-value support.
+    This component does not perform preprocessing, encoding, imputation,
+    or feature engineering.
     """
 
     def __init__(self) -> None:
         self.model = model_loader.load()
 
     def get_expected_features(self) -> list[str]:
-        """Return the exact feature names expected by the model."""
-
         features = self.model.feature_names
 
         if not features:
-            raise ValueError(
-                "Model feature names are unavailable."
-            )
+            raise ValueError("Model feature names are unavailable.")
 
         return list(features)
 
@@ -36,13 +31,6 @@ class FeatureBuilder:
         self,
         transaction_features: dict[str, Any],
     ) -> pd.DataFrame:
-        """
-        Build one model input row using the analyst-provided fields.
-
-        The resulting DataFrame always contains the exact 432 model
-        features in the exact order expected by the XGBoost model.
-        """
-
         expected_features = self.get_expected_features()
 
         if len(expected_features) != 432:
@@ -51,30 +39,30 @@ class FeatureBuilder:
                 f"but model exposes {len(expected_features)}."
             )
 
-        # Start with all model features as missing.
+        missing_features = [
+            feature
+            for feature in expected_features
+            if feature not in transaction_features
+        ]
+
+        if missing_features:
+            raise ValueError(
+                "Historical 432-feature scoring requires the complete "
+                "preprocessed feature contract. Missing features: "
+                + ", ".join(missing_features[:20])
+                + ("..." if len(missing_features) > 20 else "")
+            )
+
         feature_values = {
-            feature: float("nan")
+            feature: transaction_features[feature]
             for feature in expected_features
         }
-
-        ignored_features: list[str] = []
-
-        for feature, value in transaction_features.items():
-            if value is None:
-                continue
-
-            if feature not in expected_features:
-                ignored_features.append(feature)
-                continue
-
-            feature_values[feature] = value
 
         model_input = pd.DataFrame(
             [feature_values],
             columns=expected_features,
         )
 
-        # Structural validation.
         if model_input.shape != (1, 432):
             raise ValueError(
                 f"Invalid model input shape: {model_input.shape}. "

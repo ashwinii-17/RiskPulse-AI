@@ -1,16 +1,106 @@
 import { useEffect, useMemo, useState } from "react";
-import { getTransactions, predictRisk } from "../services/api";
+import {
+  getTransactions,
+  searchTransactions,
+  predictRisk,
+} from "../services/api";
+import RiskLevelIcon from "../components/RiskLevelIcon";
+
+function Icon({ name, size = 18 }) {
+  const props = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+  };
+
+  const icons = {
+    chart: (
+      <>
+        <path d="M4 19V10" />
+        <path d="M10 19V5" />
+        <path d="M16 19v-7" />
+        <path d="M22 19V3" />
+      </>
+    ),
+
+    search: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </>
+    ),
+
+    transaction: (
+      <>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 10h18" />
+        <path d="M7 15h4" />
+      </>
+    ),
+
+    percent: (
+      <>
+        <path d="m19 5-14 14" />
+        <circle cx="7" cy="7" r="2" />
+        <circle cx="17" cy="17" r="2" />
+      </>
+    ),
+
+    warning: (
+      <>
+        <path d="M10.3 3.7 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0Z" />
+        <path d="M12 9v4" />
+        <path d="M12 16h.01" />
+      </>
+    ),
+
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
+
+    ai: (
+      <>
+        <rect x="4" y="4" width="16" height="16" rx="3" />
+        <path d="M8 12h8" />
+        <path d="M12 8v8" />
+      </>
+    ),
+
+    arrow: (
+      <>
+        <path d="M5 12h13" />
+        <path d="m13 6 6 6-6 6" />
+      </>
+    ),
+  };
+
+  return <svg {...props}>{icons[name]}</svg>;
+}
 
 function RiskAnalysis() {
   const [transactions, setTransactions] = useState([]);
+  const [totalTransactionCount, setTotalTransactionCount] =
+    useState(0);
+
   const [selectedId, setSelectedId] = useState(null);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [simulationAmount, setSimulationAmount] = useState("");
-  const [simulationLoading, setSimulationLoading] = useState(false);
+  const [simulationLoading, setSimulationLoading] =
+    useState(false);
   const [simulationError, setSimulationError] = useState("");
-  const [simulationResult, setSimulationResult] = useState(null);
+  const [simulationResult, setSimulationResult] =
+    useState(null);
 
   useEffect(() => {
     async function loadTransactions() {
@@ -20,17 +110,29 @@ function RiskAnalysis() {
 
         const data = await getTransactions();
 
-        setTransactions(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.transactions)
+            ? data.transactions
+            : [];
 
-        if (Array.isArray(data) && data.length > 0) {
-          setSelectedId(data[0].id);
+        const total = Array.isArray(data)
+          ? list.length
+          : Number(data?.total || 0);
+
+        setTransactions(list);
+        setTotalTransactionCount(total);
+
+        if (list.length > 0) {
+          setSelectedId(list[0].id);
           setSimulationAmount(
-            String(data[0].transaction_amount),
+            String(list[0].transaction_amount ?? ""),
           );
         }
       } catch (err) {
         setError(
-          err.message || "Unable to load transaction data.",
+          err.message ||
+            "Unable to load transaction data.",
         );
       } finally {
         setLoading(false);
@@ -40,24 +142,75 @@ function RiskAnalysis() {
     loadTransactions();
   }, []);
 
+  useEffect(() => {
+    const query = search.trim();
+
+    if (!query) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const results = await searchTransactions(query, 50);
+
+        setTransactions(
+          Array.isArray(results) ? results : [],
+        );
+
+        if (Array.isArray(results) && results.length > 0) {
+          setSelectedId(results[0].id);
+          setSimulationAmount(
+            String(results[0].transaction_amount ?? ""),
+          );
+        } else {
+          setSelectedId(null);
+          setSimulationResult(null);
+        }
+      } catch (err) {
+        setError(
+          err.message ||
+            "Unable to search transaction data.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const selectedTransaction = useMemo(
     () =>
       transactions.find(
-        (transaction) => transaction.id === selectedId,
+        (transaction) =>
+          transaction.id === selectedId,
       ),
     [transactions, selectedId],
   );
 
-  const featureCount = selectedTransaction?.model_features
-    ? Object.keys(selectedTransaction.model_features).length
-    : 0;
+  const filteredTransactions = search.trim()
+    ? transactions
+    : transactions;
 
-  const isNewTransaction = featureCount === 10;
-  const isHistoricalTransaction = featureCount === 432;
+  const featureCount =
+    selectedTransaction?.model_features
+      ? Object.keys(
+          selectedTransaction.model_features,
+        ).length
+      : 0;
+
+  const isNewTransaction =
+    featureCount === 10;
+
+  const isHistoricalTransaction =
+    featureCount === 432;
 
   const modelName = isNewTransaction
-    ? "RiskPulse V2 XGBoost"
-    : "RiskPulse XGBoost";
+    ? "XGBoost V2"
+    : "XGBoost";
 
   const modelDescription = isNewTransaction
     ? "Dedicated 10-feature new-transaction fraud model"
@@ -67,58 +220,20 @@ function RiskAnalysis() {
     ? "New Transaction Analysis"
     : isHistoricalTransaction
       ? "IEEE-CIS Dataset"
-      : "Unknown Source";
+      : "RiskPulse Analysis";
 
-  const riskClass = (level) => {
-    if (!level) return "risk-low";
+  const riskClass = (level) =>
+    `risk-${String(
+      level || "LOW",
+    ).toLowerCase()}`;
 
-    return `risk-${String(level).toLowerCase()}`;
-  };
-
-  const getRiskInterpretation = (level, score) => {
-    const numericScore = Number(score || 0);
-
-    switch (level) {
-      case "CRITICAL":
-        return {
-          title: "CRITICAL MODEL RISK",
-          message: `The risk score of ${numericScore.toFixed(
-            2,
-          )} exceeds the critical-risk threshold. Immediate transaction review is recommended.`,
-        };
-
-      case "HIGH":
-        return {
-          title: "HIGH MODEL RISK",
-          message: `The risk score of ${numericScore.toFixed(
-            2,
-          )} exceeds the high-risk threshold. Further transaction review is recommended.`,
-        };
-
-      case "MEDIUM":
-        return {
-          title: "MEDIUM MODEL RISK",
-          message: `The risk score of ${numericScore.toFixed(
-            2,
-          )} falls within the medium-risk range. Additional monitoring may be appropriate.`,
-        };
-
-      case "LOW":
-      default:
-        return {
-          title: "LOW MODEL RISK",
-          message: `The risk score of ${numericScore.toFixed(
-            2,
-          )} falls within the low-risk range based on the current transaction profile.`,
-        };
-    }
-  };
-
-  const handleTransactionSelect = (transaction) => {
+  const selectTransaction = (transaction) => {
     setSelectedId(transaction.id);
 
     setSimulationAmount(
-      String(transaction.transaction_amount),
+      String(
+        transaction.transaction_amount ?? "",
+      ),
     );
 
     setSimulationResult(null);
@@ -135,23 +250,16 @@ function RiskAnalysis() {
       return;
     }
 
-    if (!selectedTransaction) {
+    if (!selectedTransaction?.model_features) {
       setSimulationError(
-        "Select a transaction before running a simulation.",
-      );
-      return;
-    }
-
-    if (!selectedTransaction.model_features) {
-      setSimulationError(
-        "The selected transaction does not contain model features.",
+        "Selected transaction model features are unavailable.",
       );
       return;
     }
 
     if (![10, 432].includes(featureCount)) {
       setSimulationError(
-        `Unsupported model feature set: ${featureCount} features.`,
+        `Unsupported model feature set: ${featureCount}.`,
       );
       return;
     }
@@ -161,30 +269,27 @@ function RiskAnalysis() {
       setSimulationError("");
       setSimulationResult(null);
 
-      const simulationFeatures = {
-        ...selectedTransaction.model_features,
-        TransactionAmt: amount,
-      };
-
       const result = await predictRisk({
         transaction_id: `SIM-${Date.now()}`,
         transaction_amount: amount,
-        features: simulationFeatures,
+        features: {
+          ...selectedTransaction.model_features,
+          TransactionAmt: amount,
+        },
         persist_result: false,
       });
 
       setSimulationResult({
-        transaction_id: result.transaction_id,
         transaction_amount: amount,
-        fraud_probability: result.fraud_probability,
+        fraud_probability:
+          result.fraud_probability,
         risk_score: result.risk_score,
         risk_level: result.risk_level,
       });
-
-      setSimulationAmount(String(amount));
     } catch (err) {
       setSimulationError(
-        err.message || "Unable to analyze transaction risk.",
+        err.message ||
+          "Unable to analyze transaction risk.",
       );
     } finally {
       setSimulationLoading(false);
@@ -220,10 +325,15 @@ function RiskAnalysis() {
   }
 
   return (
-    <div className="risk-analysis-page">
-      <div className="page-heading-row">
+    <div className="risk-analysis-v2">
+
+      {/* PAGE HEADER */}
+
+      <div className="risk-analysis-v2-header">
+
         <div>
-          <div className="section-eyebrow">
+
+          <div className="risk-analysis-eyebrow">
             AI INVESTIGATION
           </div>
 
@@ -233,109 +343,221 @@ function RiskAnalysis() {
             Investigate transaction-level fraud risk generated by
             the RiskPulse XGBoost engine.
           </p>
+
         </div>
 
-        <div className="analysis-status">
-          <span className="status-dot" />
+        <div className="risk-analysis-online">
+          <span />
           Analysis engine active
         </div>
+
       </div>
 
-      <div className="analysis-grid">
-        <section className="analysis-card transaction-selector">
-          <div className="analysis-card-header">
-            <div>
-              <h2>Analyzed Transactions</h2>
 
-              <p>
-                Select a transaction for detailed risk assessment.
-              </p>
+      {/* MAIN TWO COLUMN AREA */}
+
+      <div className="risk-analysis-workspace">
+
+        {/* LEFT */}
+
+        <section className="risk-analysis-panel transaction-panel">
+
+          <div className="risk-panel-header">
+
+            <div className="risk-panel-title">
+
+              <div className="risk-panel-icon blue">
+                <Icon name="chart" size={19} />
+              </div>
+
+              <div>
+
+                <h2>Analyzed Transactions</h2>
+
+                <p>
+                  Select a transaction for detailed risk assessment.
+                </p>
+
+              </div>
+
             </div>
 
-            <span className="record-count">
-              {transactions.length} records
+            <span className="risk-record-count">
+              {totalTransactionCount.toLocaleString()} records
             </span>
+
           </div>
 
-          <div className="analysis-transaction-list">
-            {transactions.map((transaction) => {
-              const transactionFeatureCount =
-                transaction.model_features
-                  ? Object.keys(
-                      transaction.model_features,
-                    ).length
-                  : 0;
 
-              return (
-                <button
-                  key={transaction.id}
-                  type="button"
-                  className={`analysis-transaction ${
-                    selectedId === transaction.id
-                      ? "selected"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    handleTransactionSelect(transaction)
-                  }
-                >
-                  <div className="analysis-transaction-main">
-                    <strong>
-                      {transaction.transaction_id}
-                    </strong>
+          {/* SEARCH */}
 
-                    <span>
-                      ₹
-                      {Number(
-                        transaction.transaction_amount || 0,
-                      ).toFixed(2)}
-                    </span>
-                  </div>
+          <div className="risk-search-box">
 
-                  <div className="analysis-transaction-meta">
-                    <span>
-                      {(
-                        Number(
-                          transaction.fraud_probability || 0,
-                        ) * 100
-                      ).toFixed(2)}
-                      % probability
-                    </span>
+            <Icon name="search" size={17} />
 
-                    <span
-                      className={riskClass(
-                        transaction.risk_level,
-                      )}
+            <input
+              value={search}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
+              placeholder="Search by transaction ID..."
+            />
+
+          </div>
+
+
+          {/* TRANSACTION LIST */}
+
+          <div className="risk-transaction-list">
+
+            {filteredTransactions.length === 0 ? (
+
+              <div className="risk-empty-list">
+                No matching transactions found.
+              </div>
+
+            ) : (
+
+              filteredTransactions.map(
+                (transaction) => {
+
+                  const transactionFeatureCount =
+                    transaction.model_features
+                      ? Object.keys(
+                          transaction.model_features,
+                        ).length
+                      : 0;
+
+                  const selected =
+                    selectedId === transaction.id;
+
+                  return (
+                    <button
+                      key={transaction.id}
+                      type="button"
+                      className={
+                        selected
+                          ? "risk-transaction-row selected"
+                          : "risk-transaction-row"
+                      }
+                      onClick={() =>
+                        selectTransaction(transaction)
+                      }
                     >
-                      {transaction.risk_level}
-                    </span>
-                  </div>
 
-                  <div className="analysis-transaction-model">
-                    {transactionFeatureCount === 10
-                      ? "V2 • 10 features"
-                      : transactionFeatureCount === 432
-                        ? "XGBoost • 432 features"
-                        : `${transactionFeatureCount} features`}
-                  </div>
-                </button>
-              );
-            })}
+                      <div className="risk-transaction-main">
+
+                        <strong>
+                          {transaction.transaction_id}
+                        </strong>
+
+                        <span>
+                          {(
+                            Number(
+                              transaction.fraud_probability ||
+                                0,
+                            ) * 100
+                          ).toFixed(2)}
+                          % probability
+                        </span>
+
+                        <small>
+                          {transactionFeatureCount === 10
+                            ? "V2 · 10 features"
+                            : transactionFeatureCount === 432
+                              ? "XGBoost · 432 features"
+                              : `${transactionFeatureCount} features`}
+                        </small>
+
+                      </div>
+
+
+                      <div className="risk-transaction-right">
+
+                        <strong>
+                          ₹
+                          {Number(
+                            transaction.transaction_amount ||
+                              0,
+                          ).toFixed(2)}
+                        </strong>
+
+                        <span
+                          className={`risk-level-inline ${riskClass(
+                            transaction.risk_level,
+                          )}`}
+                        >
+
+                          <RiskLevelIcon
+                            level={transaction.risk_level}
+                            size={14}
+                          />
+
+                          <span>
+                            {transaction.risk_level}
+                          </span>
+
+                        </span>
+
+                      </div>
+
+
+                      <Icon
+                        name="arrow"
+                        size={15}
+                      />
+
+                    </button>
+                  );
+                },
+              )
+            )}
+
           </div>
+
         </section>
 
-        <section className="analysis-card investigation-card">
-          {selectedTransaction ? (
+
+        {/* RIGHT */}
+
+        <section className="risk-analysis-panel assessment-panel">
+
+          {!selectedTransaction ? (
+
+            <div className="risk-empty-assessment">
+
+              <Icon
+                name="search"
+                size={28}
+              />
+
+              <h3>Select a transaction</h3>
+
+              <p>
+                Select a transaction from the list to inspect
+                its RiskPulse assessment.
+              </p>
+
+            </div>
+
+          ) : (
+
             <>
-              <div className="analysis-card-header">
+
+              {/* ASSESSMENT HEADER */}
+
+              <div className="risk-assessment-header">
+
                 <div>
-                  <div className="section-eyebrow">
+
+                  <div className="risk-analysis-eyebrow">
                     TRANSACTION ASSESSMENT
                   </div>
 
                   <h2>
                     {selectedTransaction.transaction_id}
                   </h2>
+
                 </div>
 
                 <span
@@ -343,33 +565,49 @@ function RiskAnalysis() {
                     selectedTransaction.risk_level,
                   )}`}
                 >
-                  {selectedTransaction.risk_level}
-                </span>
-              </div>
 
-              <div className="risk-score-panel">
-                <div>
-                  <span className="metric-label">
-                    RISK SCORE
+                  <RiskLevelIcon
+                    level={
+                      selectedTransaction.risk_level
+                    }
+                    size={17}
+                  />
+
+                  <span>
+                    {selectedTransaction.risk_level}
                   </span>
 
-                  <div className="risk-score-value">
-                    {Number(
-                      selectedTransaction.risk_score || 0,
-                    ).toFixed(2)}
+                </span>
 
-                    <span>/100</span>
-                  </div>
+              </div>
+
+
+              {/* SCORE */}
+
+              <div className="risk-score-section">
+
+                <span>RISK SCORE</span>
+
+                <div className="risk-score-number">
+
+                  {Number(
+                    selectedTransaction.risk_score ||
+                      0,
+                  ).toFixed(2)}
+
+                  <small>/100</small>
+
                 </div>
 
-                <div className="risk-score-bar">
+                <div className="risk-score-progress">
+
                   <div
-                    className="risk-score-fill"
                     style={{
                       width: `${Math.min(
                         Math.max(
                           Number(
-                            selectedTransaction.risk_score || 0,
+                            selectedTransaction.risk_score ||
+                              0,
                           ),
                           0,
                         ),
@@ -377,13 +615,28 @@ function RiskAnalysis() {
                       )}%`,
                     }}
                   />
+
                 </div>
+
               </div>
 
-              <div className="risk-simulator">
-                <div className="risk-simulator-header">
+
+              {/* SCENARIO */}
+
+              <div className="risk-scenario-card">
+
+                <div className="risk-scenario-heading">
+
+                  <div className="risk-panel-icon blue">
+                    <Icon
+                      name="chart"
+                      size={18}
+                    />
+                  </div>
+
                   <div>
-                    <div className="section-eyebrow">
+
+                    <div className="risk-analysis-eyebrow">
                       SCENARIO ANALYSIS
                     </div>
 
@@ -391,83 +644,97 @@ function RiskAnalysis() {
                       Counterfactual Risk Analysis
                     </h3>
 
-                    <p>
-                      Change the transaction amount and observe
-                      how the selected model responds while all
-                      other transaction features remain unchanged.
-                    </p>
                   </div>
+
                 </div>
 
-                <div className="risk-simulator-form">
-                  <div className="simulator-input-group">
-                    <label htmlFor="simulation-amount">
-                      Transaction Amount
-                    </label>
+                <p>
+                  Change the transaction amount and observe how
+                  the selected model responds while all other
+                  transaction features remain unchanged.
+                </p>
 
-                    <div className="amount-input-wrapper">
-                      <span>₹</span>
 
-                      <input
-                        id="simulation-amount"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={simulationAmount}
-                        onChange={(event) => {
-                          setSimulationAmount(
-                            event.target.value,
-                          );
-                        }}
-                        disabled={simulationLoading}
-                      />
-                    </div>
+                <div className="risk-simulation-row">
+
+                  <div className="risk-amount-input">
+
+                    <span>₹</span>
+
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={simulationAmount}
+                      onChange={(event) =>
+                        setSimulationAmount(
+                          event.target.value,
+                        )
+                      }
+                      disabled={
+                        simulationLoading
+                      }
+                    />
+
                   </div>
 
                   <button
                     type="button"
-                    className="simulate-risk-button"
-                    disabled={simulationLoading}
+                    className="risk-analyze-button"
                     onClick={handleSimulation}
+                    disabled={
+                      simulationLoading
+                    }
                   >
                     {simulationLoading
                       ? "Analyzing..."
                       : "Analyze Risk"}
                   </button>
+
                 </div>
 
                 {simulationError && (
-                  <div className="simulation-error">
+                  <div className="risk-simulation-error">
                     {simulationError}
                   </div>
                 )}
+
               </div>
 
-              {simulationResult && (
-                <div className="simulation-result">
-                  <div className="simulation-result-header">
-                    <div>
-                      <div className="section-eyebrow">
-                        SIMULATION RESULT
-                      </div>
 
-                      <h3>
-                        Counterfactual Model Response
-                      </h3>
+              {/* SIMULATION RESULT */}
+
+              {simulationResult && (
+
+                <div className="risk-simulation-result">
+
+                  <div className="risk-simulation-result-main">
+
+                    <div className="risk-simulation-result-item">
+
+                      <span>
+                        ORIGINAL AMOUNT
+                      </span>
+
+                      <strong>
+                        ₹
+                        {Number(
+                          selectedTransaction.transaction_amount ||
+                            0,
+                        ).toFixed(2)}
+                      </strong>
+
                     </div>
 
-                    <span
-                      className={`large-risk-badge ${riskClass(
-                        simulationResult.risk_level,
-                      )}`}
-                    >
-                      {simulationResult.risk_level}
-                    </span>
-                  </div>
+                    <div className="risk-simulation-arrow">
+                      →
+                    </div>
 
-                  <div className="simulation-result-metrics">
-                    <div className="simulation-result-metric">
-                      <span>SIMULATED AMOUNT</span>
+                    <div className="risk-simulation-result-item">
+
+                      <span>
+                        SIMULATED AMOUNT
+                      </span>
 
                       <strong>
                         ₹
@@ -476,183 +743,180 @@ function RiskAnalysis() {
                             0,
                         ).toFixed(2)}
                       </strong>
+
                     </div>
 
-                    <div className="simulation-result-metric">
-                      <span>FRAUD PROBABILITY</span>
+                    <div className="risk-simulation-result-divider" />
 
-                      <strong>
-                        {(
-                          Number(
-                            simulationResult.fraud_probability ||
-                              0,
-                          ) * 100
-                        ).toFixed(2)}
-                        %
-                      </strong>
-                    </div>
+                    <div className="risk-simulation-result-item">
 
-                    <div className="simulation-result-metric">
-                      <span>RISK SCORE</span>
+                      <span>
+                        SIMULATED RISK
+                      </span>
 
                       <strong>
                         {Number(
-                          simulationResult.risk_score || 0,
-                        ).toFixed(2)}
-                        /100
-                      </strong>
-                    </div>
-
-                    <div className="simulation-result-metric">
-                      <span>RISK CHANGE</span>
-
-                      <strong
-                        className={
-                          Number(
-                            simulationResult.risk_score || 0,
-                          ) -
-                            Number(
-                              selectedTransaction.risk_score ||
-                                0,
-                            ) >
-                          0
-                            ? "risk-change-positive"
-                            : Number(
-                                  simulationResult.risk_score ||
-                                    0,
-                                ) -
-                                  Number(
-                                    selectedTransaction.risk_score ||
-                                      0,
-                                  ) <
-                              0
-                            ? "risk-change-negative"
-                            : "risk-change-neutral"
-                        }
-                      >
-                        {Number(
-                          simulationResult.risk_score || 0,
-                        ) -
-                          Number(
-                            selectedTransaction.risk_score || 0,
-                          ) >
-                        0
-                          ? "+"
-                          : ""}
-                        {(
-                          Number(
-                            simulationResult.risk_score || 0,
-                          ) -
-                          Number(
-                            selectedTransaction.risk_score || 0,
-                          )
-                        ).toFixed(2)}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="simulation-result-bar">
-                    <div
-                      className="simulation-result-bar-fill"
-                      style={{
-                        width: `${Math.min(
-                          Math.max(
-                            Number(
-                              simulationResult.risk_score || 0,
-                            ),
+                          simulationResult.risk_score ||
                             0,
-                          ),
-                          100,
-                        )}%`,
-                      }}
-                    />
+                        ).toFixed(2)}
+                        <small>/100</small>
+                      </strong>
+
+                    </div>
+
                   </div>
 
-                  <div
-                    className={`simulation-interpretation ${riskClass(
+                  <span
+                    className={`large-risk-badge ${riskClass(
                       simulationResult.risk_level,
                     )}`}
                   >
-                    {(() => {
-                      const interpretation =
-                        getRiskInterpretation(
-                          simulationResult.risk_level,
-                          simulationResult.risk_score,
-                        );
 
-                      return (
-                        <>
-                          <strong>
-                            {interpretation.title}
-                          </strong>
+                    <RiskLevelIcon
+                      level={
+                        simulationResult.risk_level
+                      }
+                      size={17}
+                    />
 
-                          <p>
-                            {interpretation.message}
-                          </p>
-                        </>
-                      );
-                    })()}
-                  </div>
+                    <span>
+                      {simulationResult.risk_level}
+                    </span>
 
-                  <div className="simulation-result-message">
-                    This is a counterfactual scenario. The selected
-                    transaction profile was evaluated after changing
-                    only the transaction amount. The displayed result
-                    represents the model's predicted fraud risk for
-                    that modified profile.
-                  </div>
+                  </span>
+
                 </div>
               )}
 
-              <div className="investigation-metrics">
-                <div className="investigation-metric">
-                  <span>Transaction Amount</span>
 
-                  <strong>
-                    ₹
-                    {Number(
-                      selectedTransaction.transaction_amount ||
-                        0,
-                    ).toFixed(2)}
-                  </strong>
-                </div>
+              {/* METRICS */}
 
-                <div className="investigation-metric">
-                  <span>Fraud Probability</span>
+              <div className="risk-detail-grid">
 
-                  <strong>
-                    {(
-                      Number(
-                        selectedTransaction.fraud_probability ||
+                <div className="risk-detail-card">
+
+                  <div className="risk-detail-icon blue">
+                    <Icon
+                      name="transaction"
+                      size={17}
+                    />
+                  </div>
+
+                  <div>
+
+                    <span>
+                      TRANSACTION AMOUNT
+                    </span>
+
+                    <strong>
+                      ₹
+                      {Number(
+                        selectedTransaction.transaction_amount ||
                           0,
-                      ) * 100
-                    ).toFixed(2)}
-                    %
-                  </strong>
+                      ).toFixed(2)}
+                    </strong>
+
+                  </div>
+
                 </div>
 
-                <div className="investigation-metric">
-                  <span>Risk Classification</span>
 
-                  <strong>
-                    {selectedTransaction.risk_level}
-                  </strong>
+                <div className="risk-detail-card">
+
+                  <div className="risk-detail-icon green">
+                    <Icon
+                      name="percent"
+                      size={17}
+                    />
+                  </div>
+
+                  <div>
+
+                    <span>
+                      FRAUD PROBABILITY
+                    </span>
+
+                    <strong>
+                      {(
+                        Number(
+                          selectedTransaction.fraud_probability ||
+                            0,
+                        ) * 100
+                      ).toFixed(2)}
+                      %
+                    </strong>
+
+                  </div>
+
                 </div>
 
-                <div className="investigation-metric">
-                  <span>Analysis Source</span>
 
-                  <strong>{analysisSource}</strong>
+                <div className="risk-detail-card">
+
+                  <div className="risk-detail-icon amber">
+                    <Icon
+                      name="warning"
+                      size={17}
+                    />
+                  </div>
+
+                  <div>
+
+                    <span>
+                      RISK CLASSIFICATION
+                    </span>
+
+                    <strong>
+                      {selectedTransaction.risk_level}
+                    </strong>
+
+                  </div>
+
                 </div>
+
+
+                <div className="risk-detail-card">
+
+                  <div className="risk-detail-icon purple">
+                    <Icon
+                      name="clock"
+                      size={17}
+                    />
+                  </div>
+
+                  <div>
+
+                    <span>
+                      ANALYSIS SOURCE
+                    </span>
+
+                    <strong>
+                      {analysisSource}
+                    </strong>
+
+                  </div>
+
+                </div>
+
               </div>
 
-              <div className="assessment-box">
-                <div className="assessment-icon">
-                  AI
+
+              {/* AI ASSESSMENT */}
+
+              <div className="risk-ai-box">
+
+                <div className="risk-detail-icon blue">
+                  <Icon
+                    name="ai"
+                    size={17}
+                  />
                 </div>
 
                 <div>
-                  <h3>AI Risk Assessment</h3>
+
+                  <h3>
+                    AI Risk Assessment
+                  </h3>
 
                   <p>
                     The{" "}
@@ -660,7 +924,8 @@ function RiskAnalysis() {
                     assigned this transaction a risk score of{" "}
                     <strong>
                       {Number(
-                        selectedTransaction.risk_score || 0,
+                        selectedTransaction.risk_score ||
+                          0,
                       ).toFixed(2)}
                     </strong>{" "}
                     based on its{" "}
@@ -669,59 +934,62 @@ function RiskAnalysis() {
                     </strong>{" "}
                     model input.
                   </p>
+
                 </div>
+
               </div>
 
-              <div className="model-information">
+
+              {/* MODEL FOOTER */}
+
+              <div className="risk-model-footer">
+
                 <div>
+
                   <span>MODEL</span>
 
                   <strong>
-                    {isNewTransaction
-                      ? "XGBoost V2"
-                      : "XGBoost"}
+                    {modelName}
                   </strong>
+
+                  <small>
+                    {modelDescription}
+                  </small>
+
                 </div>
 
                 <div>
+
                   <span>FEATURES</span>
 
                   <strong>
-                    {featureCount || "N/A"}
+                    {featureCount}
                   </strong>
+
                 </div>
 
                 <div>
+
                   <span>ENGINE</span>
 
                   <strong>
                     {isNewTransaction
                       ? "New Transaction Inference"
-                      : isHistoricalTransaction
-                        ? "Production Inference"
-                        : "Unknown"}
+                      : "Production Inference"}
                   </strong>
+
                 </div>
+
               </div>
 
-              <div className="model-description">
-                {modelDescription}
-              </div>
             </>
-          ) : (
-            <div className="page-state">
-              <div className="page-state-title">
-                No transaction selected
-              </div>
 
-              <div className="page-state-text">
-                Select an analyzed transaction to begin
-                investigation.
-              </div>
-            </div>
           )}
+
         </section>
+
       </div>
+
     </div>
   );
 }

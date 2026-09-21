@@ -29,6 +29,10 @@ router = APIRouter(
 )
 
 
+# =========================================================
+# RISK PREDICTION
+# =========================================================
+
 @router.post(
     "/predict",
     response_model=RiskPredictionResponse,
@@ -49,12 +53,15 @@ def predict_risk(
         feature_count = len(request.features)
 
         if feature_count == 432:
+
             features = pd.DataFrame(
                 [request.features]
             )
 
-            probability = fraud_predictor.predict_probability(
-                features
+            probability = (
+                fraud_predictor.predict_probability(
+                    features
+                )
             )
 
             risk_score = round(
@@ -62,15 +69,19 @@ def predict_risk(
                 2,
             )
 
-            risk_level = fraud_predictor.classify_risk(
-                risk_score
+            risk_level = (
+                fraud_predictor.classify_risk(
+                    risk_score
+                )
             )
 
             ood_result = None
 
         elif feature_count == 10:
+
             probability = (
-                new_transaction_predictor_v2.predict_probability(
+                new_transaction_predictor_v2
+                .predict_probability(
                     request.features
                 )
             )
@@ -81,7 +92,8 @@ def predict_risk(
             )
 
             risk_level = (
-                new_transaction_predictor_v2.classify_risk(
+                new_transaction_predictor_v2
+                .classify_risk(
                     risk_score
                 )
             )
@@ -90,19 +102,26 @@ def predict_risk(
                 request.features
             )
 
-            print("OOD RESULT:", ood_result)
+            print(
+                "OOD RESULT:",
+                ood_result,
+            )
 
         else:
+
             raise ValueError(
                 "Unsupported transaction feature count: "
                 f"{feature_count}. Expected 10 or 432."
             )
 
         if request.persist_result:
+
             TransactionService.create_transaction(
                 db=db,
                 transaction_id=request.transaction_id,
-                transaction_amount=request.transaction_amount,
+                transaction_amount=(
+                    request.transaction_amount
+                ),
                 fraud_probability=probability,
                 risk_score=risk_score,
                 risk_level=risk_level,
@@ -120,14 +139,25 @@ def predict_risk(
         )
 
     except ValueError as exc:
+
         db.rollback()
+
+        message = str(exc)
+
+        if "already exists" in message.lower():
+
+            raise HTTPException(
+                status_code=409,
+                detail=message,
+            ) from exc
 
         raise HTTPException(
             status_code=422,
-            detail=str(exc),
+            detail=message,
         ) from exc
 
     except Exception as exc:
+
         db.rollback()
 
         raise HTTPException(
@@ -135,6 +165,10 @@ def predict_risk(
             detail="Risk prediction failed.",
         ) from exc
 
+
+# =========================================================
+# NEW TRANSACTION ANALYSIS
+# =========================================================
 
 @router.post(
     "/new-transaction",
@@ -147,17 +181,22 @@ def analyze_new_transaction(
     """Analyze fraud risk for a newly submitted transaction."""
 
     try:
+
         transaction_data = request.model_dump(
             exclude_none=True
         )
 
-        transaction_id = transaction_data.pop(
-            "transaction_id",
-            None,
+        transaction_id = (
+            transaction_data.pop(
+                "transaction_id",
+                None,
+            )
         )
 
-        transaction_amount = transaction_data.pop(
-            "transaction_amount",
+        transaction_amount = (
+            transaction_data.pop(
+                "transaction_amount",
+            )
         )
 
         transaction_data["TransactionAmt"] = (
@@ -166,18 +205,22 @@ def analyze_new_transaction(
 
         missing_features = [
             feature
-            for feature in new_transaction_predictor_v2.FEATURES
+            for feature in (
+                new_transaction_predictor_v2.FEATURES
+            )
             if feature not in transaction_data
         ]
 
         if missing_features:
+
             raise ValueError(
                 "Missing required transaction features: "
                 + ", ".join(missing_features)
             )
 
         probability = (
-            new_transaction_predictor_v2.predict_probability(
+            new_transaction_predictor_v2
+            .predict_probability(
                 transaction_data
             )
         )
@@ -188,18 +231,20 @@ def analyze_new_transaction(
         )
 
         risk_level = (
-            new_transaction_predictor_v2.classify_risk(
+            new_transaction_predictor_v2
+            .classify_risk(
                 risk_score
             )
         )
 
-        # Validate whether the supplied model features
-        # are inside the observed training-data range.
         ood_result = ood_validator.validate(
             transaction_data
         )
 
-        print("OOD RESULT:", ood_result)
+        print(
+            "OOD RESULT:",
+            ood_result,
+        )
 
         transaction_id = (
             transaction_id
@@ -229,6 +274,7 @@ def analyze_new_transaction(
         )
 
     except ValueError as exc:
+
         db.rollback()
 
         raise HTTPException(
@@ -237,25 +283,151 @@ def analyze_new_transaction(
         ) from exc
 
     except Exception as exc:
+
         db.rollback()
 
         raise HTTPException(
             status_code=500,
-            detail="New transaction risk analysis failed.",
+            detail=(
+                "New transaction risk analysis failed."
+            ),
         ) from exc
 
 
+# =========================================================
+# TRANSACTIONS
+# =========================================================
+
 @router.get(
     "/transactions",
-    response_model=list[TransactionResponse],
+    response_model=dict,
 )
 def get_transactions(
+    page: int = 1,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """
+    Return paginated transaction history.
+
+    The database handles pagination so the frontend
+    never loads all 529k transactions at once.
+    """
+
+    transactions, total = (
+        TransactionService.get_transactions_paginated(
+            db=db,
+            page=page,
+            limit=limit,
+        )
+    )
+
+    safe_limit = min(
+        max(limit, 1),
+        100,
+    )
+
+    return {
+        "transactions": [
+            TransactionResponse.model_validate(
+                transaction
+            )
+            for transaction in transactions
+        ],
+        "total": int(total),
+        "page": page,
+        "limit": safe_limit,
+        "total_pages": (
+            (total + safe_limit - 1)
+            // safe_limit
+            if total
+            else 0
+        ),
+    }
+
+
+# =========================================================
+# TRANSACTION SEARCH
+# =========================================================
+
+@router.get(
+    "/transactions/search",
+    response_model=list[TransactionResponse],
+)
+def search_transactions(
+    query: str,
+    limit: int = 50,
     db: Session = Depends(get_db),
 ) -> list[TransactionResponse]:
-    """Return recently analyzed transactions."""
 
-    return TransactionService.get_recent_transactions(db)
+    transactions = (
+        TransactionService.search_transactions(
+            db=db,
+            query=query,
+            limit=limit,
+        )
+    )
 
+    return [
+        TransactionResponse.model_validate(
+            transaction
+        )
+        for transaction in transactions
+    ]
+
+
+# =========================================================
+# RISK ALERTS
+# =========================================================
+
+@router.get(
+    "/transactions/alerts",
+    response_model=dict,
+)
+def get_risk_alerts(
+    page: int = 1,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """
+    Return paginated HIGH and CRITICAL transactions.
+    """
+
+    transactions, total = (
+        TransactionService.get_risk_alerts(
+            db=db,
+            page=page,
+            limit=limit,
+        )
+    )
+
+    safe_limit = min(
+        max(limit, 1),
+        100,
+    )
+
+    return {
+        "transactions": [
+            TransactionResponse.model_validate(
+                transaction
+            )
+            for transaction in transactions
+        ],
+        "total": int(total),
+        "page": page,
+        "limit": safe_limit,
+        "total_pages": (
+            (total + safe_limit - 1)
+            // safe_limit
+            if total
+            else 0
+        ),
+    }
+
+
+# =========================================================
+# RISK SUMMARY
+# =========================================================
 
 @router.get("/summary")
 def get_risk_summary(
@@ -263,34 +435,115 @@ def get_risk_summary(
 ) -> dict[str, int]:
     """Return aggregate risk metrics for the dashboard."""
 
-    return TransactionService.get_risk_summary(db)
+    return TransactionService.get_risk_summary(
+        db
+    )
 
+
+# =========================================================
+# RISK STATISTICS / ANALYTICS
+# =========================================================
+
+@router.get("/analytics")
+def get_risk_analytics(
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Return database-wide statistics for
+    the Risk Statistics page.
+    """
+
+    return TransactionService.get_risk_analytics(
+        db
+    )
+
+
+# =========================================================
+# RISK SCORE DISTRIBUTION
+# =========================================================
+
+@router.get("/risk-score-distribution")
+def get_risk_score_distribution(
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    """
+    Return database-wide risk score distribution.
+    """
+
+    return TransactionService.get_risk_score_distribution(
+        db
+    )
+
+
+# =========================================================
+# AVERAGE RISK SCORE
+# =========================================================
+
+@router.get("/average-risk-score")
+def get_average_risk_score(
+    db: Session = Depends(get_db),
+) -> dict[str, float]:
+    """
+    Return the average risk score across
+    all transactions.
+    """
+
+    average = (
+        TransactionService.get_average_risk_score(
+            db
+        )
+    )
+
+    return {
+        "average_risk_score": round(
+            average,
+            2,
+        )
+    }
+
+
+# =========================================================
+# MODEL SCHEMA
+# =========================================================
 
 @router.get("/model-schema")
 def get_model_schema() -> dict[str, object]:
     """Return the available RiskPulse model contracts."""
 
-    original_features = fraud_predictor.model.feature_names
+    original_features = (
+        fraud_predictor.model.feature_names
+    )
 
     if original_features is None:
+
         raise HTTPException(
             status_code=500,
-            detail="Original model feature names are unavailable.",
+            detail=(
+                "Original model feature names "
+                "are unavailable."
+            ),
         )
 
     return {
         "models": {
+
             "historical": {
                 "model": "XGBoost",
-                "feature_count": len(original_features),
+                "feature_count": len(
+                    original_features
+                ),
                 "features": original_features,
             },
+
             "new_transaction": {
                 "model": "XGBoost V2",
                 "feature_count": len(
                     new_transaction_predictor_v2.FEATURES
                 ),
-                "features": new_transaction_predictor_v2.FEATURES,
+                "features": (
+                    new_transaction_predictor_v2.FEATURES
+                ),
             },
+
         }
     }
