@@ -909,10 +909,15 @@ tbody tr:last-child td {
   letter-spacing: 0.04em;
 }
 
-.risk-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+.risk-badge svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .risk-critical {
