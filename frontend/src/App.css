@@ -3599,8 +3599,8 @@ tbody tr:last-child td {
 
   /* LEFT CARD */
 
-  .transaction-input-card {
-    overflow: hidden;
+ .transaction-input-card {
+    overflow: visible;
   }
 
   .transaction-input-card .analysis-card-header {
@@ -3609,8 +3609,9 @@ tbody tr:last-child td {
   }
 
   .transaction-input-card .new-transaction-form {
-    height: calc(100% - 66px);
-    padding: 13px 18px 13px;
+    height: auto;
+    min-height: 0;
+    padding: 13px 18px 20px;
   }
 
   .transaction-input-card .form-section {
@@ -14117,3 +14118,374 @@ button[onClick*="risk-statistics"] {
   gap: 10px !important;
 }
 
+/* =========================================================
+   NEW TRANSACTION FORM
+   ========================================================= */
+
+.new-transaction-page .transaction-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.new-transaction-page .transaction-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.new-transaction-page .transaction-field label {
+  color: #d7e2f2;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.new-transaction-page .transaction-field small {
+  color: #71829a;
+  font-size: 10px;
+  margin-top: 1px;
+}
+
+.new-transaction-page .transaction-field input {
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 0 13px;
+
+  border: 1px solid #26384e;
+  border-radius: 8px;
+
+  background: #0b1726;
+  color: #edf4ff;
+
+  font-size: 13px;
+  font-family: inherit;
+
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.new-transaction-page .transaction-field input::placeholder {
+  color: #65758b;
+}
+
+.new-transaction-page .transaction-field input:hover {
+  border-color: #344b66;
+}
+
+.new-transaction-page .transaction-field input:focus {
+  border-color: #3185ff;
+  background: #0d1b2d;
+  box-shadow: 0 0 0 3px rgba(49, 133, 255, 0.12);
+}
+
+.new-transaction-page .input-with-prefix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.new-transaction-page .input-with-prefix > span {
+  position: absolute;
+  left: 13px;
+  z-index: 1;
+
+  color: #8fa4bd;
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.new-transaction-page .input-with-prefix input {
+  padding-left: 29px;
+}
+
+.new-transaction-page .form-section {
+  padding: 20px 0;
+  border-bottom: 1px solid #1b2b3e;
+}
+
+.new-transaction-page .form-section:first-child {
+  padding-top: 10px;
+}
+
+.new-transaction-page .form-section:last-child {
+  border-bottom: none;
+}
+
+.new-transaction-page .form-section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-bottom: 12px;
+
+  color: #dce8f7;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.new-transaction-page .form-section-title svg {
+  width: 15px;
+  height: 15px;
+  color: #4b9cff;
+}
+
+.new-transaction-page .form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding-top: 18px;
+}
+
+.new-transaction-page .primary-action-button {
+  min-height: 42px;
+  padding: 0 20px;
+
+  border: 1px solid #3287ff;
+  border-radius: 8px;
+
+  background: #2383ee;
+  color: #ffffff;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.new-transaction-page .primary-action-button:hover {
+  background: #318df5;
+  box-shadow: 0 5px 18px rgba(35, 131, 238, 0.2);
+}
+
+.new-transaction-page .primary-action-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.new-transaction-page .secondary-action-button {
+  min-height: 42px;
+  padding: 0 18px;
+
+  border: 1px solid #26384e;
+  border-radius: 8px;
+
+  background: #0b1726;
+  color: #9dafc4;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.new-transaction-page .secondary-action-button:hover {
+  border-color: #344b66;
+  color: #d9e5f4;
+}
+
+.new-transaction-page .new-transaction-error {
+  margin-top: 15px;
+  padding: 11px 13px;
+
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+
+  background: rgba(127, 29, 29, 0.15);
+  color: #ff8b8b;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   NEW TRANSACTION RESULT
+   ========================================================= */
+
+.new-transaction-page .prediction-result-card {
+  min-width: 0;
+}
+
+.new-transaction-page .empty-result-state {
+  min-height: 480px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .new-transaction-page .transaction-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .new-transaction-page .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .new-transaction-page .primary-action-button,
+  .new-transaction-page .secondary-action-button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   NEW TRANSACTION - FULL FORM VISIBILITY
+   ========================================================= */
+
+.new-transaction-page .transaction-input-card {
+  overflow: visible;
+}
+
+.new-transaction-page .new-transaction-form {
+  overflow: visible;
+}
+
+.new-transaction-page .form-section {
+  overflow: visible;
+}
+
+.new-transaction-page .transaction-form-grid {
+  overflow: visible;
+}
+
+/* =========================================================
+   NEW TRANSACTION — SHOW COMPLETE FORM
+   ========================================================= */
+
+.new-transaction-page {
+  min-height: auto !important;
+}
+
+.new-transaction-page .new-transaction-grid {
+  align-items: flex-start !important;
+  min-height: 0 !important;
+}
+
+.new-transaction-page .transaction-input-card {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.new-transaction-page .new-transaction-form {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.new-transaction-page .form-section {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.new-transaction-page .transaction-form-grid {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.new-transaction-page .transaction-field {
+  min-height: 0 !important;
+}
+
+.new-transaction-page .form-actions {
+  position: relative !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (min-width: 1200px) {
+  .new-transaction-grid {
+    overflow: visible !important;
+  }
+}
+/* =========================================================
+   NEW TRANSACTION — ALLOW PAGE SCROLL AT 100% ZOOM
+   ========================================================= */
+
+@media (min-width: 1200px) {
+  .new-transaction-page {
+    height: auto !important;
+    min-height: calc(100vh - 70px) !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .new-transaction-grid {
+    overflow: visible !important;
+  }
+}
+
+/* =========================================================
+   NEW TRANSACTION — RISK RESULT SUMMARY POLISH
+   ========================================================= */
+
+@media (min-width: 1200px) {
+  .new-transaction-page .risk-summary {
+    min-height: 104px !important;
+    grid-template-columns: 42px minmax(0, 0.9fr) 1px minmax(0, 1.3fr) !important;
+    gap: 14px !important;
+    padding: 15px 16px !important;
+  }
+
+  .new-transaction-page .risk-warning-icon {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 22px !important;
+  }
+
+  .new-transaction-page .risk-level-block span,
+  .new-transaction-page .risk-score-block span {
+    font-size: 9px !important;
+    letter-spacing: 1px !important;
+  }
+
+  .new-transaction-page .risk-level-block strong {
+    margin-top: 5px !important;
+    font-size: 25px !important;
+    line-height: 1 !important;
+  }
+
+  .new-transaction-page .risk-score-block strong {
+    margin-top: 4px !important;
+    font-size: 30px !important;
+    line-height: 1 !important;
+  }
+
+  .new-transaction-page .risk-score-block small {
+    font-size: 11px !important;
+  }
+
+  .new-transaction-page .risk-summary-divider {
+    height: 54px !important;
+  }
+
+  .new-transaction-page .result-score-bar {
+    height: 7px !important;
+    margin-top: 9px !important;
+  }
+}
