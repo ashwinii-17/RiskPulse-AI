@@ -347,6 +347,10 @@ function App() {
      ======================================================= */
 
   useEffect(() => {
+    if (!isLoggedIn) {
+      return;
+    }
+
     loadDashboard(true);
 
     const refreshInterval =
@@ -359,7 +363,7 @@ function App() {
         refreshInterval
       );
     };
-  }, [loadDashboard]);
+  }, [isLoggedIn, loadDashboard]);
 
 
   /* =======================================================
