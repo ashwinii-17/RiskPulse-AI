@@ -460,6 +460,30 @@ a {
   border-radius: 8px;
 }
 
+.critical-card .kpi-icon {
+  color: #f06468;
+  background: rgba(207, 67, 83, 0.10);
+  border-color: rgba(207, 67, 83, 0.22);
+}
+
+.high-card .kpi-icon {
+  color: #f0a044;
+  background: rgba(211, 135, 59, 0.10);
+  border-color: rgba(211, 135, 59, 0.22);
+}
+
+.medium-card .kpi-icon {
+  color: #e3ca4e;
+  background: rgba(204, 190, 64, 0.10);
+  border-color: rgba(204, 190, 64, 0.22);
+}
+
+.low-card .kpi-icon {
+  color: #55c889;
+  background: rgba(64, 183, 110, 0.10);
+  border-color: rgba(64, 183, 110, 0.22);
+}
+
 .kpi-icon svg {
   width: 15px;
   height: 15px;
@@ -11497,12 +11521,16 @@ tbody tr:last-child td {
   }
 
   .content > .kpi-grid .kpi-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     background: #142033;
     border: 1px solid #2a4262;
     color: #6ca8ff;
+  }
+  .content > .kpi-grid .kpi-icon svg {
+    width: 18px;
+    height: 18px;
   }
 
   .content > .kpi-grid .critical-card .kpi-icon {
@@ -13227,3 +13255,865 @@ tbody tr:last-child td {
     width: 32px;
   }
 }
+
+/* =========================================================
+   RISK LEVEL ICONS — FINAL
+   ========================================================= */
+
+.risk-badge svg,
+.large-risk-badge svg,
+.risk-detail-icon svg,
+.kpi-icon svg {
+  display: block !important;
+  width: 17px !important;
+  height: 17px !important;
+  flex: 0 0 17px;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Remove old dots */
+.risk-badge .risk-dot,
+.large-risk-badge .risk-dot,
+.risk-detail-icon .risk-dot {
+  display: none !important;
+}
+
+/* CRITICAL → triangle */
+.risk-badge.risk-critical,
+.large-risk-badge.risk-critical {
+  color: #ff626c !important;
+}
+
+/* HIGH → pulse */
+.risk-badge.risk-high,
+.large-risk-badge.risk-high {
+  color: #ffae3c !important;
+}
+
+/* MEDIUM → clock */
+.risk-badge.risk-medium,
+.large-risk-badge.risk-medium {
+  color: #e9c65a !important;
+}
+
+/* LOW → shield + check */
+.risk-badge.risk-low,
+.large-risk-badge.risk-low {
+  color: #3cdda8 !important;
+}
+
+/* Risk detail icon */
+.risk-detail-icon {
+  overflow: hidden;
+}
+
+.risk-detail-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+
+/* =========================================================
+   RISK LEVEL ICONS — FINAL
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   COMMON ICON SIZE
+   --------------------------------------------------------- */
+
+.risk-badge svg,
+.large-risk-badge svg,
+.risk-detail-icon svg,
+.kpi-icon svg {
+  display: block !important;
+  width: 17px !important;
+  height: 17px !important;
+  min-width: 17px !important;
+  min-height: 17px !important;
+  flex: 0 0 17px !important;
+
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+/* ---------------------------------------------------------
+   REMOVE OLD RISK DOTS
+   --------------------------------------------------------- */
+
+.risk-badge .risk-dot,
+.large-risk-badge .risk-dot,
+.risk-detail-icon .risk-dot {
+  display: none !important;
+}
+
+
+/* ---------------------------------------------------------
+   RISK BADGE BASE
+   --------------------------------------------------------- */
+
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  min-width: 72px;
+  padding: 5px 9px;
+
+  border: 1px solid transparent;
+  border-radius: 6px;
+
+  background: rgba(255, 255, 255, 0.025);
+
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+
+/* ---------------------------------------------------------
+   LARGE RISK BADGE
+   --------------------------------------------------------- */
+
+.large-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  padding: 7px 11px;
+
+  border-radius: 7px;
+  border: 1px solid currentColor;
+
+  background: rgba(255, 255, 255, 0.025);
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   CRITICAL
+   Triangle / warning
+   ========================================================= */
+
+.risk-badge.risk-critical,
+.large-risk-badge.risk-critical {
+  color: #ff626c !important;
+
+  border-color: rgba(255, 98, 108, 0.25);
+  background: rgba(255, 98, 108, 0.07);
+}
+
+
+/* =========================================================
+   HIGH
+   Pulse / activity
+   ========================================================= */
+
+.risk-badge.risk-high,
+.large-risk-badge.risk-high {
+  color: #ffae3c !important;
+
+  border-color: rgba(255, 174, 60, 0.25);
+  background: rgba(255, 174, 60, 0.07);
+}
+
+
+/* =========================================================
+   MEDIUM
+   Clock / moderate risk
+   ========================================================= */
+
+.risk-badge.risk-medium,
+.large-risk-badge.risk-medium {
+  color: #e9c65a !important;
+
+  border-color: rgba(233, 198, 90, 0.25);
+  background: rgba(233, 198, 90, 0.07);
+}
+
+
+/* =========================================================
+   LOW
+   Shield + check
+   ========================================================= */
+
+.risk-badge.risk-low,
+.large-risk-badge.risk-low {
+  color: #3cdda8 !important;
+
+  border-color: rgba(60, 221, 168, 0.25);
+  background: rgba(60, 221, 168, 0.07);
+}
+
+
+/* =========================================================
+   RISK DETAIL ICON
+   ========================================================= */
+
+.risk-detail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+}
+
+.risk-detail-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+
+/* =========================================================
+   KPI ICONS
+   ========================================================= */
+
+.kpi-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+
+/* =========================================================
+   HOVER — SUBTLE
+   ========================================================= */
+
+.risk-badge.risk-critical:hover,
+.large-risk-badge.risk-critical:hover {
+  background: rgba(255, 98, 108, 0.11);
+}
+
+.risk-badge.risk-high:hover,
+.large-risk-badge.risk-high:hover {
+  background: rgba(255, 174, 60, 0.11);
+}
+
+.risk-badge.risk-medium:hover,
+.large-risk-badge.risk-medium:hover {
+  background: rgba(233, 198, 90, 0.11);
+}
+
+.risk-badge.risk-low:hover,
+.large-risk-badge.risk-low:hover {
+  background: rgba(60, 221, 168, 0.11);
+}
+
+
+/* =========================================================
+   RISK STATISTICS / ANALYTICS ICON COMPATIBILITY
+   ========================================================= */
+
+.risk-statistics-page .risk-badge,
+.risk-statistics-page .large-risk-badge {
+  display: inline-flex;
+  align-items: center;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  .risk-badge {
+    min-width: 65px;
+    padding: 5px 7px;
+    gap: 5px;
+    font-size: 8px;
+  }
+
+  .large-risk-badge {
+    padding: 6px 9px;
+    gap: 6px;
+    font-size: 9px;
+  }
+
+  .risk-badge svg,
+  .large-risk-badge svg,
+  .risk-detail-icon svg,
+  .kpi-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+    min-width: 15px !important;
+    min-height: 15px !important;
+    flex-basis: 15px !important;
+  }
+}
+
+/* =========================================================
+   RISK ANALYSIS — ANALYZED TRANSACTIONS RISK ICONS
+   ========================================================= */
+
+.risk-transaction-right .risk-level-inline {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+
+  min-width: 58px;
+  padding: 4px 7px;
+
+  border-radius: 5px;
+  border: 1px solid currentColor;
+
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+
+/* Make the RiskLevelIcon visible */
+.risk-transaction-right .risk-level-inline svg {
+  display: block !important;
+
+  width: 14px !important;
+  height: 14px !important;
+
+  min-width: 14px !important;
+  min-height: 14px !important;
+
+  flex: 0 0 14px !important;
+
+  fill: none !important;
+  stroke: currentColor !important;
+
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   CRITICAL — WARNING TRIANGLE
+   ========================================================= */
+
+.risk-transaction-right .risk-level-inline.risk-critical {
+  color: #ff626c !important;
+  background: rgba(255, 98, 108, 0.08) !important;
+  border-color: rgba(255, 98, 108, 0.30) !important;
+}
+
+
+/* =========================================================
+   HIGH — PULSE
+   ========================================================= */
+
+.risk-transaction-right .risk-level-inline.risk-high {
+  color: #ffae3c !important;
+  background: rgba(255, 174, 60, 0.08) !important;
+  border-color: rgba(255, 174, 60, 0.30) !important;
+}
+
+
+/* =========================================================
+   MEDIUM — CLOCK
+   ========================================================= */
+
+.risk-transaction-right .risk-level-inline.risk-medium {
+  color: #e9c65a !important;
+  background: rgba(233, 198, 90, 0.08) !important;
+  border-color: rgba(233, 198, 90, 0.30) !important;
+}
+
+
+/* =========================================================
+   LOW — SHIELD + CHECK
+   ========================================================= */
+
+.risk-transaction-right .risk-level-inline.risk-low {
+  color: #3cdda8 !important;
+  background: rgba(60, 221, 168, 0.08) !important;
+  border-color: rgba(60, 221, 168, 0.30) !important;
+}
+
+
+/* =========================================================
+   TRANSACTION ROW — KEEP ICON + BADGE TOGETHER
+   ========================================================= */
+
+.risk-transaction-right {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.risk-transaction-right > strong {
+  white-space: nowrap;
+}
+
+.risk-transaction-right .risk-level-inline > span {
+  display: inline-block !important;
+  line-height: 1 !important;
+}
+
+/* =========================================================
+   RISK ANALYSIS — 100% DESKTOP SCALE / READABILITY
+   Paste at the VERY BOTTOM of App.css
+   ========================================================= */
+
+/* Main Risk Analysis page */
+.risk-analysis-v2 {
+  font-size: 14px !important;
+}
+
+
+/* ---------------------------------------------------------
+   HEADER
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .page-kicker {
+  font-size: 11px !important;
+  letter-spacing: 0.8px !important;
+}
+
+.risk-analysis-v2 .page-title {
+  font-size: 28px !important;
+  line-height: 1.15 !important;
+}
+
+.risk-analysis-v2 .page-subtitle {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+
+/* ---------------------------------------------------------
+   ANALYZED TRANSACTIONS CARD
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .transaction-list-card {
+  border-radius: 9px !important;
+}
+
+.risk-analysis-v2 .transaction-list-header {
+  min-height: 58px !important;
+  padding: 12px 14px !important;
+}
+
+.risk-analysis-v2 .transaction-list-header h3 {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+.risk-analysis-v2 .transaction-list-header p {
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+}
+
+.risk-analysis-v2 .transaction-count {
+  font-size: 10px !important;
+  padding: 5px 8px !important;
+}
+
+
+/* ---------------------------------------------------------
+   SEARCH
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .transaction-search {
+  min-height: 42px !important;
+  height: 42px !important;
+  margin: 10px !important;
+}
+
+.risk-analysis-v2 .transaction-search input {
+  font-size: 11px !important;
+}
+
+.risk-analysis-v2 .transaction-search input::placeholder {
+  font-size: 11px !important;
+}
+
+
+/* ---------------------------------------------------------
+   TRANSACTION ROWS
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .risk-transaction-row {
+  min-height: 72px !important;
+  padding: 10px 12px !important;
+}
+
+.risk-analysis-v2 .risk-transaction-id {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1.3 !important;
+}
+
+.risk-analysis-v2 .risk-transaction-meta {
+  font-size: 9px !important;
+  line-height: 1.45 !important;
+}
+
+.risk-analysis-v2 .risk-transaction-model {
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+
+.risk-analysis-v2 .risk-transaction-right {
+  gap: 8px !important;
+}
+
+.risk-analysis-v2 .risk-transaction-right > strong {
+  font-size: 10px !important;
+}
+
+
+/* Risk badge inside transaction list */
+
+.risk-analysis-v2 .risk-level-inline {
+  min-width: 68px !important;
+  min-height: 27px !important;
+  padding: 5px 8px !important;
+
+  gap: 5px !important;
+
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.35px !important;
+}
+
+.risk-analysis-v2 .risk-level-inline svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+
+/* ---------------------------------------------------------
+   TRANSACTION ASSESSMENT CARD
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .assessment-panel {
+  border-radius: 9px !important;
+}
+
+.risk-analysis-v2 .assessment-header {
+  padding: 14px 16px !important;
+  min-height: 64px !important;
+}
+
+.risk-analysis-v2 .assessment-kicker {
+  font-size: 10px !important;
+  letter-spacing: 0.7px !important;
+}
+
+.risk-analysis-v2 .assessment-title {
+  font-size: 16px !important;
+  line-height: 1.3 !important;
+}
+
+
+/* ---------------------------------------------------------
+   LARGE RISK BADGE
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .large-risk-badge {
+  min-height: 36px !important;
+  padding: 7px 11px !important;
+
+  gap: 6px !important;
+
+  font-size: 10px !important;
+  font-weight: 800 !important;
+}
+
+.risk-analysis-v2 .large-risk-badge svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+
+/* ---------------------------------------------------------
+   RISK SCORE
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .risk-score-label {
+  font-size: 9px !important;
+  letter-spacing: 0.7px !important;
+}
+
+.risk-analysis-v2 .risk-score-value {
+  font-size: 28px !important;
+  line-height: 1.1 !important;
+}
+
+.risk-analysis-v2 .risk-score-value span {
+  font-size: 10px !important;
+}
+
+
+/* ---------------------------------------------------------
+   SCENARIO / COUNTERFACTUAL CARD
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .scenario-card {
+  padding: 14px !important;
+  border-radius: 8px !important;
+}
+
+.risk-analysis-v2 .scenario-card h3 {
+  font-size: 13px !important;
+  line-height: 1.3 !important;
+}
+
+.risk-analysis-v2 .scenario-card p {
+  font-size: 9px !important;
+  line-height: 1.5 !important;
+}
+
+.risk-analysis-v2 .scenario-input {
+  min-height: 42px !important;
+}
+
+.risk-analysis-v2 .scenario-input input {
+  font-size: 11px !important;
+}
+
+.risk-analysis-v2 .scenario-card button {
+  min-height: 42px !important;
+  padding: 0 16px !important;
+
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+
+/* ---------------------------------------------------------
+   DETAIL CARDS
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .assessment-detail-grid {
+  gap: 9px !important;
+}
+
+.risk-analysis-v2 .assessment-detail-card {
+  min-height: 62px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
+}
+
+.risk-analysis-v2 .assessment-detail-card h4 {
+  font-size: 8px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.risk-analysis-v2 .assessment-detail-card strong {
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.risk-analysis-v2 .assessment-detail-card p {
+  font-size: 8px !important;
+  line-height: 1.4 !important;
+}
+
+
+/* Detail icons */
+
+.risk-analysis-v2 .risk-detail-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+}
+
+.risk-analysis-v2 .risk-detail-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+
+/* ---------------------------------------------------------
+   AI RISK ASSESSMENT
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .ai-assessment-card {
+  min-height: 58px !important;
+  padding: 10px 12px !important;
+}
+
+.risk-analysis-v2 .ai-assessment-card h3 {
+  font-size: 11px !important;
+  line-height: 1.3 !important;
+}
+
+.risk-analysis-v2 .ai-assessment-card p {
+  font-size: 8px !important;
+  line-height: 1.45 !important;
+}
+
+
+/* ---------------------------------------------------------
+   MODEL FOOTER
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .model-footer {
+  min-height: 70px !important;
+}
+
+.risk-analysis-v2 .model-footer-item {
+  padding: 12px 14px !important;
+}
+
+.risk-analysis-v2 .model-footer-item span {
+  font-size: 8px !important;
+  letter-spacing: 0.5px !important;
+}
+
+.risk-analysis-v2 .model-footer-item strong {
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+}
+
+.risk-analysis-v2 .model-footer-item p {
+  font-size: 8px !important;
+  line-height: 1.4 !important;
+}
+
+
+/* ---------------------------------------------------------
+   HEADER ICONS
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 .section-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+}
+
+.risk-analysis-v2 .section-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+
+/* ---------------------------------------------------------
+   GENERAL TEXT — PREVENT TINY UI
+   --------------------------------------------------------- */
+
+.risk-analysis-v2 button {
+  font-size: 10px !important;
+}
+
+.risk-analysis-v2 input {
+  font-size: 11px !important;
+}
+
+.risk-analysis-v2 label {
+  font-size: 9px !important;
+}
+
+
+/* ---------------------------------------------------------
+   DESKTOP WIDTH / SPACING
+   --------------------------------------------------------- */
+
+@media (min-width: 1200px) {
+
+  .risk-analysis-v2 .risk-analysis-workspace {
+    gap: 14px !important;
+  }
+
+  .risk-analysis-v2 .transaction-list-card,
+  .risk-analysis-v2 .assessment-panel {
+    min-width: 0 !important;
+  }
+
+  .risk-analysis-v2 .risk-transaction-row {
+    min-height: 76px !important;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   100% CHROME DESKTOP — DON'T SCALE THE WHOLE APP
+   --------------------------------------------------------- */
+
+html,
+body {
+  zoom: 1 !important;
+}
+
+#root {
+  zoom: 1 !important;
+}
+
+/* =========================================================
+   RISK STATISTICS SIDEBAR ICON
+   ========================================================= */
+
+/* Risk Statistics icon only */
+button[onClick*="risk-statistics"] svg {
+  width: 17px !important;
+  height: 17px !important;
+  min-width: 17px !important;
+  min-height: 17px !important;
+
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+
+/* If your sidebar uses a class instead of inline onClick */
+.sidebar button:nth-of-type(4) svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+
+/* Risk Statistics icon color */
+button[onClick*="risk-statistics"] {
+  color: #8b9bb5 !important;
+}
+
+button[onClick*="risk-statistics"]:hover {
+  color: #5ea2ff !important;
+}
+
+
+/* Active Risk Statistics */
+button[onClick*="risk-statistics"].active {
+  color: #5ea2ff !important;
+}
+
+
+/* Keep icon aligned with text */
+button[onClick*="risk-statistics"] {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
